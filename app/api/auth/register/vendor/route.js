@@ -2,41 +2,40 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { generateRefNumber } from "@/lib/ref-number";
+import { VERIFY_TOKEN_GRACE_MINUTES } from "@/lib/otp";
 
 /**
  * POST /api/auth/register/vendor
  * Creates a User + B2BApplication (the "vendor" registration form submits here).
- * VendorApplication model no longer exists — all business registrations go through B2B.
  */
 export async function POST(request) {
   try {
     const body = await request.json();
     const {
-      // Personal
       fullName,
       email,
       phone,
       password,
-      // Business
+      verifyToken,
+      citizenshipNumber,
+      citizenshipFrontUrl,
+      citizenshipBackUrl,
       storeName,
       businessType,
+      estimatedOrderVolume,
       businessRegNo,
       panVatNo,
       businessEmail,
       businessPhone,
-      // Address
       province,
       district,
       city,
       streetAddress,
       postalCode,
-      // Store
       storeDescription,
       categories,
-      plannedProducts,
     } = body;
 
-    // ---- validation ----
     if (!fullName || !email || !password) {
       return NextResponse.json(
         { error: "Full name, email and password are required." },
@@ -49,9 +48,21 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+    if (!citizenshipNumber || !citizenshipFrontUrl || !citizenshipBackUrl) {
+      return NextResponse.json(
+        { error: "Citizenship number and document uploads are required." },
+        { status: 400 }
+      );
+    }
     if (!storeName || !businessType || !province || !district || !city) {
       return NextResponse.json(
         { error: "Store name, business type, and address are required." },
+        { status: 400 }
+      );
+    }
+    if (!estimatedOrderVolume) {
+      return NextResponse.json(
+        { error: "Estimated order volume is required." },
         { status: 400 }
       );
     }
@@ -62,9 +73,15 @@ export async function POST(request) {
       );
     }
 
+    if (!verifyToken) {
+      return NextResponse.json(
+        { error: "Email verification is required." },
+        { status: 400 }
+      );
+    }
+
     const emailLower = email.toLowerCase().trim();
 
-    // ---- check duplicates ----
     const existing = await prisma.user.findUnique({
       where: { email: emailLower },
     });
@@ -87,7 +104,24 @@ export async function POST(request) {
       }
     }
 
-    // ---- create user + B2B application in a transaction ----
+    // ---- verify OTP token ----
+    const otpRecord = await prisma.otp.findUnique({
+      where: { verifyToken },
+    });
+
+    if (
+      !otpRecord ||
+      !otpRecord.verified ||
+      otpRecord.email !== emailLower ||
+      otpRecord.purpose !== "B2B_REGISTRATION" ||
+      otpRecord.expiresAt < new Date()
+    ) {
+      return NextResponse.json(
+        { error: "Invalid or expired verification. Please verify your email again." },
+        { status: 400 }
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12);
     const nameParts = fullName.trim().split(/\s+/);
     const firstName = nameParts[0];
@@ -101,8 +135,13 @@ export async function POST(request) {
           email: emailLower,
           phone: phone?.trim() || null,
           hashedPassword,
+          emailVerified: new Date(),
         },
       });
+
+      await tx.otp.delete({ where: { id: otpRecord.id } });
+
+      const now = new Date();
 
       const application = await tx.b2BApplication.create({
         data: {
@@ -111,13 +150,27 @@ export async function POST(request) {
           contactPersonName: fullName.trim(),
           companyName: storeName.trim(),
           country: "Nepal",
-          businessType: mapBusinessType(businessType),
+          businessType,
           phone: phone?.trim() || businessPhone?.trim() || "",
           businessEmail: (businessEmail || emailLower).trim(),
           productsOfInterest: categories || [],
-          customProductNote: [storeDescription, plannedProducts].filter(Boolean).join("\n") || null,
-          targetProvince: province?.trim() || null,
-          targetCity: city?.trim() || null,
+          citizenshipNumber: citizenshipNumber.trim(),
+          citizenshipFrontUrl,
+          citizenshipBackUrl,
+          storeName: storeName.trim(),
+          businessRegNo: businessRegNo?.trim() || null,
+          panVatNo: panVatNo?.trim() || null,
+          businessPhone: businessPhone?.trim() || null,
+          province: province?.trim() || null,
+          district: district?.trim() || null,
+          city: city?.trim() || null,
+          streetAddress: streetAddress?.trim() || null,
+          postalCode: postalCode?.trim() || null,
+          storeDescription: storeDescription?.trim() || null,
+          productCategories: categories || [],
+          estimatedOrderVolume: estimatedOrderVolume || null,
+          termsAcceptedAt: now,
+          privacyAcceptedAt: now,
         },
       });
 
@@ -141,18 +194,4 @@ export async function POST(request) {
       { status: 500 }
     );
   }
-}
-
-/**
- * Map old BusinessType enum values to new B2BBusinessType values.
- */
-function mapBusinessType(type) {
-  const mapping = {
-    INDIVIDUAL: "OTHER",
-    SOLE_PROPRIETORSHIP: "RETAILER",
-    PARTNERSHIP: "DISTRIBUTOR",
-    PRIVATE_COMPANY: "CORPORATE_BUYER",
-    OTHER: "OTHER",
-  };
-  return mapping[type] || "OTHER";
 }

@@ -7,7 +7,7 @@ import AdminDataTable from "@/components/admin/ui/AdminDataTable";
 import AdminStatusBadge from "@/components/admin/ui/AdminStatusBadge";
 import Icon from "@/components/ui/Icon";
 
-const STATUSES = ["", "PENDING", "UNDER_REVIEW", "CONTACT_REQUIRED", "APPROVED", "REJECTED"];
+const STATUSES = ["", "PENDING", "UNDER_REVIEW", "MORE_INFORMATION_REQUIRED", "CONTACT_REQUIRED", "APPROVED", "REJECTED", "SUSPENDED"];
 
 export default function B2BApplicationsPage() {
   const [apps, setApps] = useState([]);
@@ -52,9 +52,9 @@ export default function B2BApplicationsPage() {
     { key: "businessType", label: "Type", render: (row) => <AdminStatusBadge status={row.businessType} /> },
     { key: "status", label: "Status", render: (row) => <AdminStatusBadge status={row.status} /> },
     {
-      key: "createdAt",
+      key: "submittedAt",
       label: "Applied",
-      render: (row) => new Date(row.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      render: (row) => new Date(row.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
     },
   ];
 

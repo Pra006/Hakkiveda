@@ -87,13 +87,44 @@ enum AddressType {
   OTHER
 }
 
+// ─── OTP Enums & Model ──────────────────────────────────────────────────────
+
+enum OtpPurpose {
+  CUSTOMER_REGISTRATION
+  B2B_REGISTRATION
+}
+
+model Otp {
+  id          String     @id @default(cuid())
+  email       String
+  hashedOtp   String
+  purpose     OtpPurpose
+  expiresAt   DateTime
+  attempts    Int        @default(0)
+  verified    Boolean    @default(false)
+  verifyToken String?    @unique
+  createdAt   DateTime   @default(now())
+
+  @@index([email, purpose])
+  @@index([expiresAt])
+  @@map("otps")
+}
+
 // ─── B2B Enums ──────────────────────────────────────────────────────────────
 
 enum B2BApplicationStatus {
   PENDING
   UNDER_REVIEW
   CONTACT_REQUIRED
+  MORE_INFORMATION_REQUIRED
   APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
   REJECTED
 }
 
@@ -107,6 +138,10 @@ enum B2BBusinessType {
   CORPORATE_BUYER
   INSTITUTIONAL_BUYER
   SALON_SPA
+  INDIVIDUAL
+  SOLE_PROPRIETORSHIP
+  PARTNERSHIP
+  PRIVATE_COMPANY
   OTHER
 }
 
@@ -219,6 +254,7 @@ enum B2BOrgStatus {
 
 model User {
   id             String    @id @default(cuid())
+  name           String?
   email          String    @unique
   hashedPassword String?
   firstName      String?
@@ -555,14 +591,29 @@ model CustomerPayment {
   reference     String?
   notes         String?               @db.Text
 
+  // ─── Provider-neutral payment fields (added for eSewa ePay V2 integration) ─
+  // provider         — e.g. "ESEWA", "KHALTI", "MANUAL"
+  // transactionUuid  — merchant-generated UUID sent to the provider (unique)
+  // providerRefId    — reference/code returned by the provider (e.g. eSewa ref_id)
+  // rawResponse      — full provider payload for debugging / audit trail
+  provider        String?
+  transactionUuid String?   @unique
+  providerRefId   String?
+  rawResponse     Json?
+  initiatedAt     DateTime  @default(now())
+  completedAt     DateTime?
+  failedAt        DateTime?
+
   customer Customer      @relation(fields: [customerId], references: [id])
   order    CustomerOrder @relation(fields: [orderId], references: [id])
 
   paidAt    DateTime @default(now())
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([customerId])
   @@index([orderId])
+  @@index([providerRefId])
   @@map("customer_payments")
 }
 
@@ -634,10 +685,55 @@ model B2BApplication {
   // Communication
   preferredCommunication B2BCommunicationChannel @default(EMAIL)
 
+  // Identity verification (B2B registration flow)
+  citizenshipNumber  String?
+  citizenshipFrontUrl String?
+  citizenshipBackUrl  String?
+  identityStatus     VerificationStatus @default(PENDING)
+  businessInfoStatus VerificationStatus @default(PENDING)
+
+  // Business address (B2B registration flow)
+  storeName      String?
+  businessRegNo  String?
+  panVatNo       String?
+  businessPhone  String?
+  province       String?
+  district       String?
+  city           String?
+  streetAddress  String?
+  postalCode     String?
+
+  // Store info (B2B registration flow)
+  storeDescription  String?   @db.Text
+  productCategories String[]
+
+  // Agreement
+  termsAcceptedAt  DateTime?
+  privacyAcceptedAt DateTime?
+
   // Review
   reviewedAt      DateTime?
   rejectionReason String?   @db.Text
   internalNotes   String?   @db.Text
+
+  // Admin actions
+  moreInfoMessage      String?   @db.Text
+  moreInfoRequestedAt  DateTime?
+  approvedAt           DateTime?
+  approvedById         String?
+  rejectedAt           DateTime?
+  rejectedById         String?
+  suspendedReason      String?   @db.Text
+  suspendedAt          DateTime?
+  suspendedById        String?
+  reinstatedAt         DateTime?
+  reinstatedById       String?
+
+  // Verification tracking
+  identityVerifiedAt   DateTime?
+  identityVerifiedById String?
+  businessVerifiedAt   DateTime?
+  businessVerifiedById String?
 
   user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization B2BOrganization?

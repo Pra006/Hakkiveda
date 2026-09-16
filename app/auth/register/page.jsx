@@ -28,6 +28,17 @@ const BUSINESS_TYPES = [
   { value: "OTHER", label: "Other" },
 ];
 
+const ORDER_VOLUMES = [
+  { value: "LESS_THAN_100", label: "30–100 units" },
+  { value: "FROM_100_TO_500", label: "101–500 units" },
+  { value: "FROM_500_TO_1000", label: "501–1,000 units" },
+  { value: "FROM_1000_TO_5000", label: "1,001–5,000 units" },
+  { value: "MORE_THAN_5000", label: "5,000+ units" },
+];
+
+const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
 const PRODUCT_CATEGORIES = [
   { value: "ayurvedic-oils", label: "Ayurvedic Oils & Wellness", icon: "spa" },
   { value: "herbal-teas", label: "Herbal Teas & Infusions", icon: "emoji_food_beverage" },
@@ -265,6 +276,203 @@ function FormSection({ title, icon, step, children }) {
 }
 
 /* ══════════════════════════════════════════════
+   OTP Verification Step
+   ══════════════════════════════════════════════ */
+
+function OtpVerificationStep({ email, purpose, onVerified, onBack }) {
+  const [otp, setOtp] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(60);
+  const [resending, setResending] = useState(false);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(intervalRef.current);
+  }, []);
+
+  function handleOtpChange(e) {
+    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+    setOtp(val);
+    setError("");
+  }
+
+  async function handleVerify(e) {
+    e.preventDefault();
+    if (otp.length !== 6) {
+      setError("Please enter the 6-digit code.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp, purpose }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Verification failed.");
+        return;
+      }
+      onVerified(data.verifyToken);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    if (resendCooldown > 0 || resending) return;
+    setResending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/otp/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, purpose }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to resend code.");
+        return;
+      }
+      setResendCooldown(60);
+      intervalRef.current = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(intervalRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch {
+      setError("Failed to resend. Please try again.");
+    } finally {
+      setResending(false);
+    }
+  }
+
+  return (
+    <div className="animate-in">
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-forest-base/10 flex items-center justify-center">
+          <Icon name="mark_email_unread" size={28} className="text-forest-base" />
+        </div>
+        <h2 className="font-headline text-xl text-forest-deep mb-2">Verify your email</h2>
+        <p className="text-sm text-on-surface-variant">
+          We sent a 6-digit code to{" "}
+          <span className="font-semibold text-on-surface">{email}</span>
+        </p>
+      </div>
+
+      <form onSubmit={handleVerify} className="space-y-5">
+        <div>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={otp}
+            onChange={handleOtpChange}
+            placeholder="000000"
+            maxLength={6}
+            className={`
+              w-full text-center text-3xl font-mono font-bold tracking-[0.5em]
+              bg-surface-container-lowest border rounded-xl px-4 py-4
+              outline-none transition-all duration-200
+              placeholder:text-on-surface-variant/20 placeholder:tracking-[0.5em]
+              focus:ring-2 focus:ring-forest-base/20 focus:border-forest-base
+              ${error
+                ? "border-terracotta/60 focus:border-terracotta focus:ring-terracotta/20"
+                : "border-outline-variant hover:border-outline"
+              }
+            `}
+            autoFocus
+          />
+          {error && (
+            <p className="mt-2 flex items-center justify-center gap-1 text-[12px] text-terracotta font-medium" role="alert">
+              <Icon name="error" size={14} />
+              {error}
+            </p>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || otp.length !== 6}
+          className="
+            w-full flex items-center justify-center gap-2.5
+            bg-forest-base text-white font-semibold text-sm
+            rounded-xl px-8 py-3.5 shadow-lg shadow-forest-base/20
+            hover:bg-forest-deep hover:shadow-xl hover:shadow-forest-base/25
+            active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed
+            disabled:hover:bg-forest-base disabled:hover:shadow-lg disabled:active:scale-100
+            transition-all duration-200
+          "
+        >
+          {loading ? (
+            <>
+              <Icon name="progress_activity" size={18} className="animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            <>
+              <Icon name="verified" size={18} />
+              Verify Email
+            </>
+          )}
+        </button>
+
+        <div className="flex items-center justify-between pt-1">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-forest-base transition-colors"
+          >
+            <Icon name="arrow_back" size={16} />
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resendCooldown > 0 || resending}
+            className={`
+              text-sm font-medium transition-colors
+              ${resendCooldown > 0 || resending
+                ? "text-on-surface-variant/40 cursor-not-allowed"
+                : "text-forest-base hover:text-antique-gold cursor-pointer"
+              }
+            `}
+          >
+            {resending
+              ? "Sending..."
+              : resendCooldown > 0
+              ? `Resend in ${resendCooldown}s`
+              : "Resend code"}
+          </button>
+        </div>
+      </form>
+
+      <p className="mt-6 text-center text-[11px] text-on-surface-variant/50">
+        Check your spam folder if you don&apos;t see the email.
+      </p>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
    Account Type Selector
    ══════════════════════════════════════════════ */
 
@@ -400,6 +608,7 @@ function VendorSuccessState({ onGoToLogin }) {
 
 function CustomerForm({ globalError, setGlobalError }) {
   const router = useRouter();
+  const [step, setStep] = useState("form");
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phone: "",
     password: "", confirmPassword: "", agree: false,
@@ -435,6 +644,28 @@ function CustomerForm({ globalError, setGlobalError }) {
     setLoading(true);
     setGlobalError("");
     try {
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          purpose: "CUSTOMER_REGISTRATION",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setGlobalError(data.error || "Failed to send verification code."); return; }
+      setStep("otp");
+    } catch {
+      setGlobalError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleOtpVerified(verifyToken) {
+    setLoading(true);
+    setGlobalError("");
+    try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -444,6 +675,7 @@ function CustomerForm({ globalError, setGlobalError }) {
           email: form.email,
           phone: form.phone || undefined,
           password: form.password,
+          verifyToken,
         }),
       });
       const data = await res.json();
@@ -458,6 +690,17 @@ function CustomerForm({ globalError, setGlobalError }) {
 
   async function handleGoogle() {
     await signIn("google", { callbackUrl: "/" });
+  }
+
+  if (step === "otp") {
+    return (
+      <OtpVerificationStep
+        email={form.email}
+        purpose="CUSTOMER_REGISTRATION"
+        onVerified={handleOtpVerified}
+        onBack={() => { setStep("form"); setGlobalError(""); }}
+      />
+    );
   }
 
   return (
@@ -589,12 +832,12 @@ function CustomerForm({ globalError, setGlobalError }) {
         {loading ? (
           <>
             <Icon name="progress_activity" size={18} className="animate-spin" />
-            Creating account...
+            Sending verification code...
           </>
         ) : (
           <>
-            <Icon name="person_add" size={18} />
-            Create Customer Account
+            <Icon name="mail" size={18} />
+            Continue with Email Verification
           </>
         )}
       </button>
@@ -628,23 +871,137 @@ function CustomerForm({ globalError, setGlobalError }) {
 }
 
 /* ══════════════════════════════════════════════
+   File Upload Component
+   ══════════════════════════════════════════════ */
+
+function FileUploadField({ label, required, error, value, onUpload, onRemove, uploading }) {
+  const inputRef = useRef(null);
+  const isImage = value && !value.url?.endsWith(".pdf");
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
+      onUpload(null, "Invalid file type. Accepted: JPG, PNG, WebP, PDF.");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      onUpload(null, "File too large. Maximum size is 5MB.");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    onUpload("uploading", null);
+    try {
+      const res = await fetch("/api/upload/private", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) { onUpload(null, data.error || "Upload failed."); return; }
+      onUpload({ url: data.url, publicId: data.publicId, name: file.name }, null);
+    } catch {
+      onUpload(null, "Upload failed. Please try again.");
+    }
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  return (
+    <FormField label={label} required={required} error={error}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".jpg,.jpeg,.png,.webp,.pdf"
+        onChange={handleFile}
+        className="hidden"
+      />
+      {!value || value === "uploading" ? (
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+          className={`
+            w-full border-2 border-dashed rounded-xl px-4 py-6 flex flex-col items-center gap-2
+            transition-all duration-200
+            ${error
+              ? "border-terracotta/40 bg-terracotta/[0.02]"
+              : "border-outline-variant/50 bg-surface-container-lowest hover:border-forest-base/40 hover:bg-forest-base/[0.02]"
+            }
+            ${uploading ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}
+          `}
+        >
+          {uploading ? (
+            <>
+              <Icon name="progress_activity" size={24} className="text-forest-base animate-spin" />
+              <span className="text-xs text-on-surface-variant">Uploading...</span>
+            </>
+          ) : (
+            <>
+              <Icon name="cloud_upload" size={24} className="text-on-surface-variant/50" />
+              <span className="text-xs text-on-surface-variant">Click to upload</span>
+              <span className="text-[10px] text-on-surface-variant/50">JPG, PNG, WebP, PDF — max 5MB</span>
+            </>
+          )}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 border border-outline-variant/50 rounded-xl px-4 py-3 bg-surface-container-lowest">
+          {isImage ? (
+            <div className="w-12 h-12 rounded-lg bg-surface-container overflow-hidden shrink-0">
+              <img src={value.url} alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-12 h-12 rounded-lg bg-terracotta/10 flex items-center justify-center shrink-0">
+              <Icon name="picture_as_pdf" size={24} className="text-terracotta" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-on-surface font-medium truncate">{value.name || "Document"}</p>
+            <p className="text-[10px] text-on-surface-variant/60">Uploaded</p>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-forest-base hover:bg-forest-base/5 transition-colors"
+              title="Replace"
+            >
+              <Icon name="swap_horiz" size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={onRemove}
+              className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-terracotta hover:bg-terracotta/5 transition-colors"
+              title="Remove"
+            >
+              <Icon name="close" size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+    </FormField>
+  );
+}
+
+/* ══════════════════════════════════════════════
    Vendor Registration Form
    ══════════════════════════════════════════════ */
 
 function VendorForm({ onSuccess, globalError, setGlobalError }) {
+  const [step, setStep] = useState("form");
   const [form, setForm] = useState({
     fullName: "", email: "", phone: "",
     password: "", confirmPassword: "",
-    storeName: "", businessType: "",
+    citizenshipNumber: "",
+    citizenshipFront: null, citizenshipBack: null,
+    storeName: "", businessType: "", estimatedOrderVolume: "",
     businessRegNo: "", panVatNo: "",
     businessEmail: "", businessPhone: "",
     province: "", district: "", city: "",
     streetAddress: "", postalCode: "",
-    storeDescription: "", categories: [], plannedProducts: "",
+    storeDescription: "", categories: [],
     agreeTerms: false, agreePrivacy: false,
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [uploadingFront, setUploadingFront] = useState(false);
+  const [uploadingBack, setUploadingBack] = useState(false);
 
   const update = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -662,6 +1019,20 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
     setErrors((prev) => ({ ...prev, categories: "" }));
   }
 
+  function handleFrontUpload(result, error) {
+    if (result === "uploading") { setUploadingFront(true); return; }
+    setUploadingFront(false);
+    if (error) { setErrors((prev) => ({ ...prev, citizenshipFront: error })); return; }
+    update("citizenshipFront", result);
+  }
+
+  function handleBackUpload(result, error) {
+    if (result === "uploading") { setUploadingBack(true); return; }
+    setUploadingBack(false);
+    if (error) { setErrors((prev) => ({ ...prev, citizenshipBack: error })); return; }
+    update("citizenshipBack", result);
+  }
+
   function validate() {
     const e = {};
     if (!form.fullName.trim()) e.fullName = "Full name is required.";
@@ -673,8 +1044,12 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
       e.password = "Password must be at least 8 characters.";
     if (form.password !== form.confirmPassword)
       e.confirmPassword = "Passwords do not match.";
+    if (!form.citizenshipNumber.trim()) e.citizenshipNumber = "Citizenship number is required.";
+    if (!form.citizenshipFront) e.citizenshipFront = "Citizenship front side is required.";
+    if (!form.citizenshipBack) e.citizenshipBack = "Citizenship back side is required.";
     if (!form.storeName.trim()) e.storeName = "Store name is required.";
     if (!form.businessType) e.businessType = "Please select a business type.";
+    if (!form.estimatedOrderVolume) e.estimatedOrderVolume = "Estimated order volume is required.";
     if (!form.province) e.province = "Province is required.";
     if (!form.district.trim()) e.district = "District is required.";
     if (!form.city.trim()) e.city = "City / Municipality is required.";
@@ -691,6 +1066,28 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
     setLoading(true);
     setGlobalError("");
     try {
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          purpose: "B2B_REGISTRATION",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setGlobalError(data.error || "Failed to send verification code."); return; }
+      setStep("otp");
+    } catch {
+      setGlobalError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleOtpVerified(verifyToken) {
+    setLoading(true);
+    setGlobalError("");
+    try {
       const res = await fetch("/api/auth/register/vendor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -699,8 +1096,13 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
           email: form.email,
           phone: form.phone || undefined,
           password: form.password,
+          verifyToken,
+          citizenshipNumber: form.citizenshipNumber,
+          citizenshipFrontUrl: form.citizenshipFront.url,
+          citizenshipBackUrl: form.citizenshipBack.url,
           storeName: form.storeName,
           businessType: form.businessType,
+          estimatedOrderVolume: form.estimatedOrderVolume,
           businessRegNo: form.businessRegNo || undefined,
           panVatNo: form.panVatNo || undefined,
           businessEmail: form.businessEmail || undefined,
@@ -712,7 +1114,6 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
           postalCode: form.postalCode || undefined,
           storeDescription: form.storeDescription || undefined,
           categories: form.categories,
-          plannedProducts: form.plannedProducts || undefined,
         }),
       });
       const data = await res.json();
@@ -723,6 +1124,17 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (step === "otp") {
+    return (
+      <OtpVerificationStep
+        email={form.email}
+        purpose="B2B_REGISTRATION"
+        onVerified={handleOtpVerified}
+        onBack={() => { setStep("form"); setGlobalError(""); }}
+      />
+    );
   }
 
   return (
@@ -795,7 +1207,44 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
         <PasswordStrength password={form.password} />
       </FormSection>
 
-      {/* Section B: Business */}
+      {/* Section B: Identity Verification */}
+      <FormSection title="Identity Verification" icon="badge">
+        <FormField label="Citizenship Number" required error={errors.citizenshipNumber}>
+          <Input
+            id="citizenship-number"
+            value={form.citizenshipNumber}
+            onChange={(e) => update("citizenshipNumber", e.target.value)}
+            placeholder="e.g. 12-34-56-78901"
+            error={errors.citizenshipNumber}
+          />
+        </FormField>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <FileUploadField
+            label="Citizenship Front Side"
+            required
+            error={errors.citizenshipFront}
+            value={form.citizenshipFront}
+            uploading={uploadingFront}
+            onUpload={handleFrontUpload}
+            onRemove={() => update("citizenshipFront", null)}
+          />
+          <FileUploadField
+            label="Citizenship Back Side"
+            required
+            error={errors.citizenshipBack}
+            value={form.citizenshipBack}
+            uploading={uploadingBack}
+            onUpload={handleBackUpload}
+            onRemove={() => update("citizenshipBack", null)}
+          />
+        </div>
+        <p className="text-[11px] text-on-surface-variant/60 flex items-center gap-1.5">
+          <Icon name="lock" size={12} />
+          Your documents are encrypted and only accessible to authorized admin reviewers.
+        </p>
+      </FormSection>
+
+      {/* Section C: Business */}
       <FormSection title="Business Information" icon="business">
         <div className="grid sm:grid-cols-2 gap-4">
           <FormField label="Store / Business Name" required error={errors.storeName}>
@@ -856,9 +1305,19 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
             />
           </FormField>
         </div>
+        <FormField label="Estimated Order Volume" required error={errors.estimatedOrderVolume}>
+          <SelectInput
+            id="order-volume"
+            value={form.estimatedOrderVolume}
+            onChange={(e) => update("estimatedOrderVolume", e.target.value)}
+            options={ORDER_VOLUMES}
+            placeholder="Select order volume"
+            error={errors.estimatedOrderVolume}
+          />
+        </FormField>
       </FormSection>
 
-      {/* Section C: Address */}
+      {/* Section D: Address */}
       <FormSection title="Business Address" icon="location_on">
         <div className="grid sm:grid-cols-3 gap-4">
           <FormField label="Province" required error={errors.province}>
@@ -910,7 +1369,7 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
         </div>
       </FormSection>
 
-      {/* Section D: Store */}
+      {/* Section E: Store */}
       <FormSection title="Store Information" icon="store">
         <FormField label="Store Description" hint="Tell buyers what makes your store special">
           <textarea
@@ -963,26 +1422,9 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
             })}
           </div>
         </FormField>
-
-        <FormField label="Products You Plan to Sell" hint="Describe the kinds of products you want to list">
-          <textarea
-            id="planned-products"
-            value={form.plannedProducts}
-            onChange={(e) => update("plannedProducts", e.target.value)}
-            rows={2}
-            placeholder="e.g. Cold-pressed bhringraj oil, tulsi tea, handmade copper vessels..."
-            className="
-              w-full bg-surface-container-lowest border border-outline-variant rounded-xl
-              px-4 py-3 text-sm text-on-surface outline-none resize-none
-              placeholder:text-on-surface-variant/40 transition-all duration-200
-              focus:ring-2 focus:ring-forest-base/20 focus:border-forest-base
-              hover:border-outline
-            "
-          />
-        </FormField>
       </FormSection>
 
-      {/* Section E: Agreements */}
+      {/* Section F: Agreements */}
       <FormSection title="B2B Business Agreement" icon="gavel">
         <div className="space-y-3">
           {/* Terms checkbox */}
@@ -1075,12 +1517,12 @@ function VendorForm({ onSuccess, globalError, setGlobalError }) {
           {loading ? (
             <>
               <Icon name="progress_activity" size={18} className="animate-spin" />
-              Submitting application...
+              Sending verification code...
             </>
           ) : (
             <>
-              <Icon name="send" size={18} />
-              Submit B2B Business Application
+              <Icon name="mail" size={18} />
+              Continue with Email Verification
             </>
           )}
         </button>

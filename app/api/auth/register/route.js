@@ -2,16 +2,24 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { generateRefNumber } from "@/lib/ref-number";
+import { VERIFY_TOKEN_GRACE_MINUTES } from "@/lib/otp";
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { firstName, lastName, email, phone, password } = body;
+    const { firstName, lastName, email, phone, password, verifyToken } = body;
 
     // ---- validation ----
     if (!firstName || !email || !password) {
       return NextResponse.json(
         { error: "First name, email and password are required." },
+        { status: 400 }
+      );
+    }
+
+    if (!verifyToken) {
+      return NextResponse.json(
+        { error: "Email verification is required." },
         { status: 400 }
       );
     }
@@ -49,6 +57,24 @@ export async function POST(request) {
       }
     }
 
+    // ---- verify OTP token ----
+    const otpRecord = await prisma.otp.findUnique({
+      where: { verifyToken },
+    });
+
+    if (
+      !otpRecord ||
+      !otpRecord.verified ||
+      otpRecord.email !== emailLower ||
+      otpRecord.purpose !== "CUSTOMER_REGISTRATION" ||
+      otpRecord.expiresAt < new Date()
+    ) {
+      return NextResponse.json(
+        { error: "Invalid or expired verification. Please verify your email again." },
+        { status: 400 }
+      );
+    }
+
     // ---- create user + customer record in a transaction ----
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -60,6 +86,7 @@ export async function POST(request) {
           email: emailLower,
           phone: phone?.trim() || null,
           hashedPassword,
+          emailVerified: new Date(),
         },
       });
 
@@ -69,6 +96,8 @@ export async function POST(request) {
           customerNumber: generateRefNumber("CUST"),
         },
       });
+
+      await tx.otp.delete({ where: { id: otpRecord.id } });
 
       return { user, customer };
     });

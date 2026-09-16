@@ -73,7 +73,14 @@ export default function CheckoutView() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Could not place your order");
-      router.push(`/account/orders?placed=${json.order.orderNumber}`);
+
+      // For eSewa: hand off to the redirect page which POSTs the signed form.
+      // Any other method (COD, etc.) confirms as before.
+      if (paymentMethod === "ESEWA") {
+        router.push(`/payment/esewa/redirect?orderId=${encodeURIComponent(json.order.id)}`);
+      } else {
+        router.push(`/account/orders?placed=${json.order.orderNumber}`);
+      }
     } catch (err) {
       setError(err.message);
       setPlacing(false);
@@ -198,9 +205,25 @@ export default function CheckoutView() {
                 </label>
               ))}
             </div>
-            <p className="mt-3 text-[11px] text-on-surface-variant">
-              Payment is recorded as pending and confirmed by our team — no online gateway is connected yet.
-            </p>
+            {paymentMethod === "ESEWA" ? (
+              <p className="mt-3 text-[11px] text-on-surface-variant">
+                You&apos;ll be redirected to eSewa&apos;s secure sandbox to complete the payment.
+                Test account details are available from{" "}
+                <a
+                  href="https://developer.esewa.com.np/pages/Epay-V2"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  eSewa&apos;s ePay V2 documentation
+                </a>
+                .
+              </p>
+            ) : (
+              <p className="mt-3 text-[11px] text-on-surface-variant">
+                Payment is recorded as pending and confirmed by our team.
+              </p>
+            )}
           </div>
         </div>
 
@@ -228,7 +251,9 @@ export default function CheckoutView() {
             </div>
           </dl>
           <Button size="lg" className="w-full mt-6" onClick={placeOrder} disabled={placing}>
-            {placing ? "Placing order…" : "Place Order"}
+            {placing
+              ? paymentMethod === "ESEWA" ? "Redirecting to eSewa…" : "Placing order…"
+              : paymentMethod === "ESEWA" ? "Pay with eSewa" : "Place Order"}
           </Button>
           <p className="mt-3 text-[11px] text-on-surface-variant text-center">
             By placing your order, you agree to Hakkiveda&apos;s Terms and acknowledge the Privacy Policy.

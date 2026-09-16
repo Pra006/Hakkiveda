@@ -239,24 +239,61 @@ export default function OrderDetailPage() {
       {/* Payments */}
       {order.payments?.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200">
-          <div className="px-6 py-4 border-b border-slate-100">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-semibold text-slate-900">Payments</h3>
           </div>
           <div className="divide-y divide-slate-100">
-            {order.payments.map((p) => (
-              <div key={p.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{p.currency || "NPR"} {(p.amount || 0).toLocaleString()}</p>
-                  <p className="text-xs text-slate-500">
-                    {p.method}
-                    {p.transactionId ? ` · txn ${p.transactionId}` : p.reference ? ` · ref ${p.reference}` : ""}
-                    {" · "}
-                    {new Date(p.paidAt || p.createdAt).toLocaleString()}
-                  </p>
+            {order.payments.map((p) => {
+              const isEsewa = p.method === "ESEWA";
+              const canVerify = isEsewa && p.transactionUuid && p.status !== "COMPLETED";
+              const verify = async () => {
+                setUpdating(true);
+                try {
+                  const r = await fetch(`/api/admin/customer-orders/${id}/verify-payment`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ paymentId: p.id }),
+                  });
+                  const data = await r.json();
+                  if (r.ok) {
+                    const fresh = await fetch(`/api/admin/customer-orders/${id}`).then((x) => x.json());
+                    if (!fresh.error) setOrder(fresh);
+                    alert(`Verification result: ${data.status}${data.error ? " — " + data.error : ""}`);
+                  } else {
+                    alert(data.error || "Verification failed");
+                  }
+                } finally {
+                  setUpdating(false);
+                }
+              };
+              return (
+                <div key={p.id} className="px-6 py-4 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{p.currency || "NPR"} {(p.amount || 0).toLocaleString()}</p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {p.method}
+                      {p.transactionUuid ? ` · uuid ${p.transactionUuid}` : ""}
+                      {p.providerRefId ? ` · eSewa ref ${p.providerRefId}` : ""}
+                      {p.transactionId && !p.transactionUuid ? ` · txn ${p.transactionId}` : ""}
+                      {" · "}
+                      {new Date(p.completedAt || p.paidAt || p.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <AdminStatusBadge status={p.status} />
+                    {canVerify && (
+                      <button
+                        onClick={verify}
+                        disabled={updating}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                      >
+                        Verify with eSewa
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <AdminStatusBadge status={p.status} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

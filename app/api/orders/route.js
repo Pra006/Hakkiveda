@@ -198,6 +198,7 @@ export async function POST(req) {
               currency: "NPR",
               method: paymentMethod,
               status: "PENDING",
+              provider: paymentMethod === "ESEWA" ? "ESEWA" : "MANUAL",
             },
           },
 
@@ -213,7 +214,12 @@ export async function POST(req) {
         include: { items: true, payments: true },
       });
 
-      await tx.customerCartItem.deleteMany({ where: { cartId: cart.id } });
+      // For eSewa the customer hasn't paid yet — keep the cart so they can
+      // retry from the same items if the gateway drops them mid-flow. The
+      // success callback clears the cart once the payment is confirmed.
+      if (paymentMethod !== "ESEWA") {
+        await tx.customerCartItem.deleteMany({ where: { cartId: cart.id } });
+      }
 
       return created;
     });

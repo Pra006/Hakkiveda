@@ -19,6 +19,7 @@ const ordersNav = [
 ];
 
 const b2bNav = [
+  { label: "Overview", href: "/admin/b2b", icon: "monitoring" },
   { label: "Applications", href: "/admin/b2b/applications", icon: "description" },
   { label: "Organizations", href: "/admin/b2b/organizations", icon: "corporate_fare" },
   { label: "Members", href: "/admin/b2b/members", icon: "badge" },
@@ -44,8 +45,8 @@ const systemNav = [
 ];
 
 function NavItem({ item, pathname, onClick }) {
-  const isActive = item.href === "/admin"
-    ? pathname === "/admin"
+  const isActive = item.href === "/admin" || item.href === "/admin/b2b"
+    ? pathname === item.href
     : pathname.startsWith(item.href);
 
   return (
