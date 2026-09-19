@@ -22,14 +22,14 @@ export async function GET(request, { params }) {
 
     const [orderTotal, invoiceTotal] = await Promise.all([
       prisma.b2BOrder.aggregate({ where: { organizationId: id }, _sum: { total: true } }),
-      prisma.b2BInvoice.aggregate({ where: { organizationId: id, paymentStatus: { in: ["PENDING", "OVERDUE"] } }, _sum: { totalAmount: true } }),
+      prisma.b2BInvoice.aggregate({ where: { organizationId: id, paymentStatus: { in: ["PENDING", "OVERDUE"] } }, _sum: { total: true } }),
     ]);
 
     return jsonResponse({
       ...org,
       stats: {
         totalOrderValue: orderTotal._sum.total || 0,
-        outstandingInvoices: invoiceTotal._sum.totalAmount || 0,
+        outstandingInvoices: invoiceTotal._sum.total || 0,
       },
     });
   } catch (err) {

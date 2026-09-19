@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { formatNPR } from "@/lib/utils";
 import { getProduct, getVendor } from "@/lib/data";
 import { useCart } from "@/components/providers/CartProvider";
+import { toast } from "react-toastify";
 
 // The DB catalog has no vendor relation yet, so vendor details are looked up
 // from the storefront catalog by product slug.

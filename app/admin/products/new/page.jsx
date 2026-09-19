@@ -5,6 +5,7 @@ import Link from "next/link";
 import AdminPageHeader from "@/components/admin/ui/AdminPageHeader";
 import ProductForm from "@/components/admin/products/ProductForm";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function NewProductPage() {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || "Could not create the product");
+    toast.success("Product created successfully!");
     router.push(`/admin/products/${json.id}?created=1`);
   }
 

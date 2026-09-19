@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 export default function WishlistRemoveButton({ productId }) {
   const router = useRouter();
@@ -17,7 +18,9 @@ export default function WishlistRemoveButton({ productId }) {
         body: JSON.stringify({ productId }),
       });
       router.refresh();
+      toast.success("Removed from wishlist");
     } catch {
+      toast.error("Could not remove from wishlist");
       setLoading(false);
     }
   }

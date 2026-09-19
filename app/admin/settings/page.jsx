@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import AdminPageHeader from "@/components/admin/ui/AdminPageHeader";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 function SettingField({ setting, value, onChange }) {
   if (typeof value === "boolean") {
@@ -74,8 +75,9 @@ export default function SettingsPage() {
           body: JSON.stringify({ key: s.key, value: edited[s.key], category }),
         });
       }
+          toast.success("Settings saved");
     } catch {
-      // ignore
+      toast.error("Failed to save settings");
     } finally {
       setSaving((p) => ({ ...p, [category]: false }));
     }

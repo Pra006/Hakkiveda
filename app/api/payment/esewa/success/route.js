@@ -83,12 +83,13 @@ async function handle(request) {
     return redirect("failed", result.order.orderNumber);
   }
 
-  // Ambiguous — do not fulfil; let the customer/admin re-verify.
-  console.info("[ESEWA_SUCCESS_AMBIGUOUS]", {
+  // NOT_FOUND or ambiguous — payment is not marked failed; the customer sees
+  // a "pending" page and the admin can re-verify once eSewa has propagated.
+  console.info("[ESEWA_SUCCESS_PENDING]", {
     transaction_uuid,
     eSewaStatus,
     transaction_code,
-    check: result.status,
+    verifyResult: result.status,
   });
   return redirect("pending", payment.order.orderNumber);
 }

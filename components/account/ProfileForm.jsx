@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
+import { toast } from "react-toastify";
 
 export default function ProfileForm({ initialData, image }) {
   const router = useRouter();
@@ -27,9 +28,11 @@ export default function ProfileForm({ initialData, image }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update");
       setMessage({ type: "success", text: "Profile updated successfully" });
+      toast.success("Profile updated successfully");
       router.refresh();
     } catch (err) {
       setMessage({ type: "error", text: err.message });
+      toast.error(err.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }

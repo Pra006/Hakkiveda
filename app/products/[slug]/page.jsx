@@ -69,7 +69,6 @@ export default async function ProductPage({ params }) {
 
             <div className="mt-4 flex items-center gap-4">
               <Rating value={product.rating} count={product.reviewCount} />
-              <span className="text-xs text-on-surface-variant">SKU: AAD-{product.id.toUpperCase()}</span>
             </div>
 
             <div className="mt-6">
@@ -145,7 +144,7 @@ export default async function ProductPage({ params }) {
               </dl>
             </div>
 
-            <ReviewList productRating={product.rating} count={product.reviewCount} />
+            <ReviewList productId={product.id} />
           </div>
 
           <aside className="space-y-6">

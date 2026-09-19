@@ -110,6 +110,21 @@ model Otp {
   @@map("otps")
 }
 
+model PasswordResetToken {
+  id             String   @id @default(cuid())
+  userId         String
+  hashedToken    String
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
 // ─── B2B Enums ──────────────────────────────────────────────────────────────
 
 enum B2BApplicationStatus {
@@ -271,10 +286,11 @@ model User {
   sessions Session[]
 
   // Domain relationships (a user can be a customer AND/OR a B2B member)
-  customer       Customer?
-  b2bApplication B2BApplication?
-  orgMemberships B2BOrganizationMember[]
-  adminUser      AdminUser?
+  customer            Customer?
+  b2bApplication      B2BApplication?
+  orgMemberships      B2BOrganizationMember[]
+  adminUser           AdminUser?
+  passwordResetTokens PasswordResetToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -300,6 +316,11 @@ model Product {
   isB2B       Boolean  @default(false)
   isActive    Boolean  @default(true)
 
+  // Admin rating override
+  adminRating          Float?   
+  adminReviewCount     Int?     
+  isAdminRatingEnabled Boolean  @default(false)
+
   category Category? @relation(fields: [categoryId], references: [id])
 
   // Customer domain
@@ -307,6 +328,7 @@ model Product {
   variants              ProductVariant[]
   customerCartItems     CustomerCartItem[]
   customerWishlistItems CustomerWishlistItem[]
+  reviews               ProductReview[]
 
   // B2B domain
   b2bPriceTiers     B2BPriceTier[]
@@ -401,6 +423,7 @@ model Customer {
   orders    CustomerOrder[]
   payments  CustomerPayment[]
   wishlist  CustomerWishlist?
+  reviews   ProductReview[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1311,4 +1334,69 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+// ─── Review Enums ───────────────────────────────────────────────────────────
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRODUCT REVIEWS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model ProductReview {
+  id         String       @id @default(cuid())
+  productId  String
+  customerId String
+  rating     Int          // 1–5
+  title      String?
+  body       String?      @db.Text
+  status     ReviewStatus @default(PENDING)
+
+  // Admin moderation
+  moderatedAt   DateTime?
+  moderatedById String?
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, customerId])
+  @@index([productId])
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("product_reviews")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HERO BANNERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model HeroBanner {
+  id           String    @id @default(cuid())
+  title        String
+  subtitle     String?   @db.Text
+  imageUrl     String
+  buttonText   String?
+  buttonLink   String?
+  badgeIcon    String?   // Material Symbols icon name
+  badgeLabel   String?   // eyebrow / tag text
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+  startDate    DateTime?
+  endDate      DateTime?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([isActive, displayOrder])
+  @@index([startDate, endDate])
+  @@map("hero_banners")
 }

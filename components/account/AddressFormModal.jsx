@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
+import { toast } from "react-toastify";
 
 const INITIAL = {
   label: "",
@@ -51,9 +52,11 @@ export default function AddressFormModal({ address }) {
       if (!res.ok) throw new Error(data.error || "Something went wrong");
       setOpen(false);
       if (!isEdit) setForm({ ...INITIAL });
+      toast.success(isEdit ? "Address updated" : "Address added");
       router.refresh();
     } catch (err) {
       setError(err.message);
+      toast.error(err.message || "Could not save address");
     } finally {
       setLoading(false);
     }

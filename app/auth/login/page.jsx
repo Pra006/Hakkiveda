@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 function GoogleIcon({ size = 18 }) {
   return (
@@ -48,11 +49,13 @@ function LoginForm() {
       });
       if (res?.error) {
         setError("Invalid email or password.");
+        toast.error("Invalid email or password.");
       } else {
         window.location.href = callbackUrl;
       }
     } catch {
       setError("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -194,7 +197,7 @@ function LoginForm() {
                     Password
                   </label>
                   <Link
-                    href="/auth/forgot"
+                    href="/auth/forgot-password"
                     className="text-[11px] font-semibold text-forest-base hover:text-antique-gold transition-colors"
                   >
                     Forgot password?

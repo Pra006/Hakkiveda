@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Icon from "@/components/ui/Icon";
 import B2BStatusBadge from "@/components/b2b/B2BStatusBadge";
 import { formatNPR } from "@/lib/utils";
+import { toast } from "react-toastify";
 
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState([]);
@@ -28,7 +29,7 @@ export default function QuotesPage() {
         const updated = await fetch("/api/b2b/quotes").then((r) => r.json());
         setQuotes(updated.quotations || []);
       } else {
-        alert(data.error || "Failed to accept");
+        toast.error(data.error || "Failed to accept quote");
       }
     } finally {
       setAccepting(null);

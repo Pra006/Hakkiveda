@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import AddressFormModal from "./AddressFormModal";
+import { toast } from "react-toastify";
 
 export default function AddressCard({ address }) {
   const router = useRouter();
@@ -14,8 +15,14 @@ export default function AddressCard({ address }) {
     setDeleting(true);
     try {
       const res = await fetch(`/api/account/addresses/${address.id}`, { method: "DELETE" });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        toast.success("Address removed");
+        router.refresh();
+      } else {
+        toast.error("Could not remove address");
+      }
     } catch {
+      toast.error("Could not remove address");
       setDeleting(false);
     }
   }
@@ -26,6 +33,7 @@ export default function AddressCard({ address }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...address, isDefault: true }),
     });
+    toast.success("Default address updated");
     router.refresh();
   }
 

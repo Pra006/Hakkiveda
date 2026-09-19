@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import B2BApplicationSuccess from "@/components/b2b/B2BApplicationSuccess";
+import { toast } from "react-toastify";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
+
+const NEPAL_PROVINCES = [
+  "Koshi Province",
+  "Madhesh Province",
+  "Bagmati Province",
+  "Gandaki Province",
+  "Lumbini Province",
+  "Karnali Province",
+  "Sudurpashchim Province",
+];
 
 const BUSINESS_TYPES = [
   { value: "DISTRIBUTOR", label: "Distributor" },
@@ -18,6 +29,10 @@ const BUSINESS_TYPES = [
   { value: "CORPORATE_BUYER", label: "Corporate Buyer" },
   { value: "INSTITUTIONAL_BUYER", label: "Institutional Buyer" },
   { value: "SALON_SPA", label: "Salon / Spa" },
+  { value: "INDIVIDUAL", label: "Individual" },
+  { value: "SOLE_PROPRIETORSHIP", label: "Sole Proprietorship" },
+  { value: "PARTNERSHIP", label: "Partnership" },
+  { value: "PRIVATE_COMPANY", label: "Private Company" },
   { value: "OTHER", label: "Other" },
 ];
 
@@ -40,15 +55,18 @@ const MONTHLY_VALUES = [
 ];
 
 const PRODUCT_CATEGORIES = [
-  "Complete Product Catalog",
-  "Ayurvedic Oils & Extracts",
-  "Herbal Teas & Infusions",
-  "Incense & Resins",
-  "Natural Skincare",
-  "Hair Care",
-  "Wellness Supplements",
-  "Bulk / Wholesale Products",
-  "Private Label / Custom Products",
+  { value: "ayurvedic-oils", label: "Ayurvedic Oils & Wellness", icon: "spa" },
+  { value: "herbal-teas", label: "Herbal Teas & Infusions", icon: "emoji_food_beverage" },
+  { value: "handloom-textiles", label: "Handloom Textiles", icon: "checkroom" },
+  { value: "wildcrafted-honey", label: "Wildcrafted Honey", icon: "local_florist" },
+  { value: "tribal-jewelry", label: "Tribal Jewelry", icon: "diamond" },
+  { value: "brass-copperware", label: "Brass & Copperware", icon: "stockpot" },
+  { value: "incense-resins", label: "Incense & Resins", icon: "air" },
+  { value: "ceramic-pottery", label: "Ceramic & Pottery", icon: "vase" },
+  { value: "organic-foods", label: "Organic Foods & Spices", icon: "nutrition" },
+  { value: "natural-beauty", label: "Natural Beauty & Skincare", icon: "face_retouching_natural" },
+  { value: "handicrafts", label: "Handicrafts & Decor", icon: "palette" },
+  { value: "other", label: "Other", icon: "category" },
 ];
 
 const COMMUNICATION_CHANNELS = [
@@ -57,6 +75,9 @@ const COMMUNICATION_CHANNELS = [
   { value: "EMAIL", label: "Email", icon: "mail" },
   { value: "WHATSAPP_EMAIL", label: "WhatsApp + Email", icon: "forum" },
 ];
+
+const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 // ─── Reusable Form Components ───────────────────────────────────────────────
 
@@ -86,15 +107,19 @@ function FormField({ label, required, error, children, hint }) {
       </label>
       {children}
       {hint && !error && <p className="text-xs text-on-surface-variant mt-1">{hint}</p>}
-      {error && <p className="text-xs text-error mt-1">{error}</p>}
+      {error && (
+        <p className="text-xs text-error mt-1 flex items-center gap-1">
+          <Icon name="error" size={12} />
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
-function TextInput({ id, type = "text", value, onChange, placeholder, ...rest }) {
+function TextInput({ value, onChange, placeholder, type = "text", ...rest }) {
   return (
     <input
-      id={id}
       type={type}
       value={value}
       onChange={onChange}
@@ -107,18 +132,25 @@ function TextInput({ id, type = "text", value, onChange, placeholder, ...rest })
 
 function SelectInput({ value, onChange, options, placeholder }) {
   return (
-    <select
-      value={value}
-      onChange={onChange}
-      className="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-forest-base/20 focus:border-forest-base/40 transition-shadow"
-    >
-      <option value="">{placeholder || "Select..."}</option>
-      {options.map((opt) => (
-        <option key={opt.value || opt} value={opt.value || opt}>
-          {opt.label || opt}
-        </option>
-      ))}
-    </select>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-forest-base/20 focus:border-forest-base/40 transition-shadow appearance-none pr-10"
+      >
+        <option value="">{placeholder || "Select..."}</option>
+        {options.map((opt) => (
+          <option key={opt.value || opt} value={opt.value || opt}>
+            {opt.label || opt}
+          </option>
+        ))}
+      </select>
+      <Icon
+        name="expand_more"
+        size={18}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none"
+      />
+    </div>
   );
 }
 
@@ -134,6 +166,111 @@ function TextArea({ value, onChange, placeholder, rows = 4 }) {
   );
 }
 
+function FileUploadField({ label, required, error, value, onUpload, onRemove, uploading }) {
+  const inputRef = useRef(null);
+  const isImage = value && !value.url?.endsWith(".pdf");
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
+      onUpload(null, "Invalid file type. Accepted: JPG, PNG, WebP, PDF.");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      onUpload(null, "File too large. Maximum size is 5MB.");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    onUpload("uploading", null);
+    try {
+      const res = await fetch("/api/upload/private", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) { onUpload(null, data.error || "Upload failed."); return; }
+      onUpload({ url: data.url, publicId: data.publicId, name: file.name }, null);
+    } catch {
+      onUpload(null, "Upload failed. Please try again.");
+    }
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  return (
+    <FormField label={label} required={required} error={error}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".jpg,.jpeg,.png,.webp,.pdf"
+        onChange={handleFile}
+        className="hidden"
+      />
+      {!value || value === "uploading" ? (
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+          className={`
+            w-full border-2 border-dashed rounded-xl px-4 py-6 flex flex-col items-center gap-2
+            transition-all duration-200
+            ${error
+              ? "border-terracotta/40 bg-terracotta/[0.02]"
+              : "border-outline-variant/50 bg-surface-container-lowest hover:border-forest-base/40 hover:bg-forest-base/[0.02]"
+            }
+            ${uploading ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}
+          `}
+        >
+          {uploading ? (
+            <>
+              <Icon name="progress_activity" size={24} className="text-forest-base animate-spin" />
+              <span className="text-xs text-on-surface-variant">Uploading...</span>
+            </>
+          ) : (
+            <>
+              <Icon name="cloud_upload" size={24} className="text-on-surface-variant/50" />
+              <span className="text-xs text-on-surface-variant">Click to upload</span>
+              <span className="text-[10px] text-on-surface-variant/50">JPG, PNG, WebP, PDF — max 5MB</span>
+            </>
+          )}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 border border-outline-variant/50 rounded-xl px-4 py-3 bg-surface-container-lowest">
+          {isImage ? (
+            <div className="w-12 h-12 rounded-lg bg-surface-container overflow-hidden shrink-0">
+              <img src={value.url} alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-12 h-12 rounded-lg bg-terracotta/10 flex items-center justify-center shrink-0">
+              <Icon name="picture_as_pdf" size={24} className="text-terracotta" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-on-surface font-medium truncate">{value.name || "Document"}</p>
+            <p className="text-[10px] text-on-surface-variant/60">Uploaded</p>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-forest-base hover:bg-forest-base/5 transition-colors"
+              title="Replace"
+            >
+              <Icon name="swap_horiz" size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={onRemove}
+              className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-terracotta hover:bg-terracotta/5 transition-colors"
+              title="Remove"
+            >
+              <Icon name="close" size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+    </FormField>
+  );
+}
+
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function B2BApplicationPage() {
@@ -146,8 +283,9 @@ export default function B2BApplicationPage() {
   const [existingApp, setExistingApp] = useState(null);
   const [checkingExisting, setCheckingExisting] = useState(true);
   const [errors, setErrors] = useState({});
+  const [uploadingFront, setUploadingFront] = useState(false);
+  const [uploadingBack, setUploadingBack] = useState(false);
 
-  // Form state
   const [form, setForm] = useState({
     contactPerson: "",
     companyName: "",
@@ -155,19 +293,42 @@ export default function B2BApplicationPage() {
     businessType: "",
     phone: "",
     businessEmail: "",
-    productsOfInterest: [],
-    customProductNote: "",
+    // Identity verification
+    citizenshipNumber: "",
+    citizenshipFront: null,
+    citizenshipBack: null,
+    // Business details
+    storeName: "",
+    businessRegNo: "",
+    panVatNo: "",
+    businessPhone: "",
     estimatedVolume: "",
     estimatedMonthlyValue: "",
+    // Address
+    province: "",
+    district: "",
+    city: "",
+    streetAddress: "",
+    postalCode: "",
+    // Store info
+    storeDescription: "",
+    productCategories: [],
+    // Products & requirements
+    productsOfInterest: [],
+    customProductNote: "",
+    // Target market
     targetCountry: "Nepal",
     targetProvince: "",
     targetCity: "",
     targetTerritory: "",
     customMessage: "",
+    // Communication
     preferredChannel: "EMAIL",
+    // Agreements
+    agreeTerms: false,
+    agreePrivacy: false,
   });
 
-  // Pre-fill from session
   useEffect(() => {
     if (session?.user) {
       setForm((prev) => ({
@@ -178,15 +339,12 @@ export default function B2BApplicationPage() {
     }
   }, [session]);
 
-  // Check for existing application
   useEffect(() => {
     async function check() {
       try {
         const res = await fetch("/api/b2b/application");
         const data = await res.json();
-        if (data.application) {
-          setExistingApp(data.application);
-        }
+        if (data.application) setExistingApp(data.application);
       } catch {}
       setCheckingExisting(false);
     }
@@ -194,10 +352,10 @@ export default function B2BApplicationPage() {
     else if (status !== "loading") setCheckingExisting(false);
   }, [status]);
 
-  function setField(key, value) {
+  const setField = useCallback((key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
-  }
+  }, []);
 
   function toggleProduct(product) {
     setForm((prev) => {
@@ -206,6 +364,30 @@ export default function B2BApplicationPage() {
         : [...prev.productsOfInterest, product];
       return { ...prev, productsOfInterest: list };
     });
+  }
+
+  function toggleCategory(cat) {
+    setForm((prev) => ({
+      ...prev,
+      productCategories: prev.productCategories.includes(cat)
+        ? prev.productCategories.filter((c) => c !== cat)
+        : [...prev.productCategories, cat],
+    }));
+    setErrors((prev) => ({ ...prev, productCategories: undefined }));
+  }
+
+  function handleFrontUpload(result, error) {
+    if (result === "uploading") { setUploadingFront(true); return; }
+    setUploadingFront(false);
+    if (error) { setErrors((prev) => ({ ...prev, citizenshipFront: error })); return; }
+    setField("citizenshipFront", result);
+  }
+
+  function handleBackUpload(result, error) {
+    if (result === "uploading") { setUploadingBack(true); return; }
+    setUploadingBack(false);
+    if (error) { setErrors((prev) => ({ ...prev, citizenshipBack: error })); return; }
+    setField("citizenshipBack", result);
   }
 
   function validate() {
@@ -217,8 +399,18 @@ export default function B2BApplicationPage() {
     if (!form.phone.trim()) e.phone = "Required";
     else if (!/^[\d+\-\s()]{7,20}$/.test(form.phone)) e.phone = "Invalid phone number";
     if (!form.businessEmail.trim()) e.businessEmail = "Required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.businessEmail))
-      e.businessEmail = "Invalid email";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.businessEmail)) e.businessEmail = "Invalid email";
+    if (!form.citizenshipNumber.trim()) e.citizenshipNumber = "Required";
+    if (!form.citizenshipFront) e.citizenshipFront = "Citizenship front side is required";
+    if (!form.citizenshipBack) e.citizenshipBack = "Citizenship back side is required";
+    if (!form.storeName.trim()) e.storeName = "Required";
+    if (!form.estimatedVolume) e.estimatedVolume = "Required";
+    if (!form.province) e.province = "Required";
+    if (!form.district.trim()) e.district = "Required";
+    if (!form.city.trim()) e.city = "Required";
+    if (form.productCategories.length === 0) e.productCategories = "Select at least one category";
+    if (!form.agreeTerms) e.agreeTerms = "You must agree to the B2B Terms";
+    if (!form.agreePrivacy) e.agreePrivacy = "You must agree to the Privacy Policy";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -232,20 +424,26 @@ export default function B2BApplicationPage() {
       const res = await fetch("/api/b2b/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          citizenshipFrontUrl: form.citizenshipFront?.url || null,
+          citizenshipBackUrl: form.citizenshipBack?.url || null,
+        }),
       });
       const data = await res.json();
 
       if (!res.ok) {
         if (data.fields) setErrors(data.fields);
-        else setErrors({ _form: data.error || "Something went wrong" });
+        else { setErrors({ _form: data.error || "Something went wrong" }); toast.error(data.error || "Something went wrong"); }
         return;
       }
 
       setReferenceNumber(data.referenceNumber);
       setSubmitted(true);
+      toast.success("Application submitted successfully!");
     } catch {
       setErrors({ _form: "Network error. Please try again." });
+      toast.error("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -269,12 +467,10 @@ export default function B2BApplicationPage() {
     return null;
   }
 
-  // Already submitted
   if (submitted) {
     return <B2BApplicationSuccess referenceNumber={referenceNumber} />;
   }
 
-  // Has existing application
   if (existingApp) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
@@ -308,10 +504,7 @@ export default function B2BApplicationPage() {
               </a>
             </div>
           )}
-          <a
-            href="/"
-            className="text-sm text-forest-deep hover:text-antique-gold font-semibold"
-          >
+          <a href="/" className="text-sm text-forest-deep hover:text-antique-gold font-semibold">
             ← Back to Store
           </a>
         </div>
@@ -411,47 +604,55 @@ export default function B2BApplicationPage() {
             </div>
           </FormSection>
 
-          {/* Section 2: Products & Requirements */}
-          <FormSection icon="inventory_2" title="Products & Requirements" subtitle="Select products or categories you are interested in">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {PRODUCT_CATEGORIES.map((cat) => {
-                const selected = form.productsOfInterest.includes(cat);
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => toggleProduct(cat)}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border transition-all ${
-                      selected
-                        ? "bg-forest-base text-ivory-canvas border-forest-base"
-                        : "bg-surface-container-lowest text-on-surface-variant border-outline-variant/60 hover:border-forest-base/40"
-                    }`}
-                  >
-                    <Icon
-                      name={selected ? "check_circle" : "add_circle"}
-                      size={16}
-                      filled={selected}
-                    />
-                    {cat}
-                  </button>
-                );
-              })}
+          {/* Section 2: Identity Verification */}
+          <FormSection icon="badge" title="Identity Verification" subtitle="Upload your citizenship documents for verification">
+            <div className="space-y-4">
+              <FormField label="Citizenship Number" required error={errors.citizenshipNumber}>
+                <TextInput
+                  value={form.citizenshipNumber}
+                  onChange={(e) => setField("citizenshipNumber", e.target.value)}
+                  placeholder="e.g. 12-34-56-78901"
+                />
+              </FormField>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <FileUploadField
+                  label="Citizenship Front Side"
+                  required
+                  error={errors.citizenshipFront}
+                  value={form.citizenshipFront}
+                  uploading={uploadingFront}
+                  onUpload={handleFrontUpload}
+                  onRemove={() => setField("citizenshipFront", null)}
+                />
+                <FileUploadField
+                  label="Citizenship Back Side"
+                  required
+                  error={errors.citizenshipBack}
+                  value={form.citizenshipBack}
+                  uploading={uploadingBack}
+                  onUpload={handleBackUpload}
+                  onRemove={() => setField("citizenshipBack", null)}
+                />
+              </div>
+              <p className="text-[11px] text-on-surface-variant/60 flex items-center gap-1.5">
+                <Icon name="lock" size={12} />
+                Your documents are encrypted and only accessible to authorized admin reviewers.
+              </p>
             </div>
-
-            <FormField label="Additional Product Notes" hint="Describe specific products, private label requirements, or custom needs">
-              <TextArea
-                value={form.customProductNote}
-                onChange={(e) => setField("customProductNote", e.target.value)}
-                placeholder="e.g., Looking for private label organic hair oil in 100ml bottles..."
-                rows={3}
-              />
-            </FormField>
           </FormSection>
 
-          {/* Section 3: Estimated Order Volume */}
-          <FormSection icon="analytics" title="Estimated Order Volume">
+          {/* Section 3: Business Details */}
+          <FormSection icon="store" title="Business Details" subtitle="Additional business information">
             <div className="grid sm:grid-cols-2 gap-4">
-              <FormField label="Estimated Order Volume">
+              <FormField label="Store / Business Name" required error={errors.storeName}>
+                <TextInput
+                  value={form.storeName}
+                  onChange={(e) => setField("storeName", e.target.value)}
+                  placeholder="e.g. Himalayan Herbs Co."
+                />
+              </FormField>
+
+              <FormField label="Estimated Order Volume" required error={errors.estimatedVolume}>
                 <SelectInput
                   value={form.estimatedVolume}
                   onChange={(e) => setField("estimatedVolume", e.target.value)}
@@ -468,10 +669,142 @@ export default function B2BApplicationPage() {
                   placeholder="Select value range"
                 />
               </FormField>
+
+              <FormField label="Business Phone">
+                <TextInput
+                  type="tel"
+                  value={form.businessPhone}
+                  onChange={(e) => setField("businessPhone", e.target.value)}
+                  placeholder="+977 01-XXXXXXX"
+                />
+              </FormField>
+
+              <FormField label="Business Registration No." hint="Optional — if registered">
+                <TextInput
+                  value={form.businessRegNo}
+                  onChange={(e) => setField("businessRegNo", e.target.value)}
+                  placeholder="e.g. 12345/078/079"
+                />
+              </FormField>
+
+              <FormField label="PAN / VAT Number" hint="Optional">
+                <TextInput
+                  value={form.panVatNo}
+                  onChange={(e) => setField("panVatNo", e.target.value)}
+                  placeholder="e.g. 600123456"
+                />
+              </FormField>
+            </div>
+
+            <div className="mt-4">
+              <FormField label="Store Description" hint="Tell buyers what makes your business special">
+                <TextArea
+                  value={form.storeDescription}
+                  onChange={(e) => setField("storeDescription", e.target.value)}
+                  placeholder="We craft traditional Ayurvedic oils using wildcrafted herbs from the Himalayan foothills..."
+                  rows={3}
+                />
+              </FormField>
             </div>
           </FormSection>
 
-          {/* Section 4: Target Market */}
+          {/* Section 4: Business Address */}
+          <FormSection icon="location_on" title="Business Address">
+            <div className="grid sm:grid-cols-3 gap-4">
+              <FormField label="Province" required error={errors.province}>
+                <SelectInput
+                  value={form.province}
+                  onChange={(e) => setField("province", e.target.value)}
+                  options={NEPAL_PROVINCES.map((p) => ({ value: p, label: p }))}
+                  placeholder="Select province"
+                />
+              </FormField>
+
+              <FormField label="District" required error={errors.district}>
+                <TextInput
+                  value={form.district}
+                  onChange={(e) => setField("district", e.target.value)}
+                  placeholder="e.g. Kathmandu"
+                />
+              </FormField>
+
+              <FormField label="City / Municipality" required error={errors.city}>
+                <TextInput
+                  value={form.city}
+                  onChange={(e) => setField("city", e.target.value)}
+                  placeholder="e.g. Lalitpur"
+                />
+              </FormField>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4 mt-4">
+              <FormField label="Street Address">
+                <TextInput
+                  value={form.streetAddress}
+                  onChange={(e) => setField("streetAddress", e.target.value)}
+                  placeholder="Ward No., Tole, Landmark"
+                />
+              </FormField>
+
+              <FormField label="Postal Code">
+                <TextInput
+                  value={form.postalCode}
+                  onChange={(e) => setField("postalCode", e.target.value)}
+                  placeholder="e.g. 44600"
+                />
+              </FormField>
+            </div>
+          </FormSection>
+
+          {/* Section 5: Product Categories */}
+          <FormSection icon="inventory_2" title="Product Categories" subtitle="Select categories you are interested in">
+            <FormField label="Categories" required error={errors.productCategories} hint="Select all that apply">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1.5">
+                {PRODUCT_CATEGORIES.map((cat) => {
+                  const selected = form.productCategories.includes(cat.value);
+                  return (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => toggleCategory(cat.value)}
+                      className={`
+                        flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[12px] font-medium text-left
+                        transition-all duration-200 group/cat
+                        ${selected
+                          ? "border-forest-base bg-forest-base/[0.06] text-forest-deep shadow-sm"
+                          : "border-outline-variant/50 text-on-surface-variant hover:border-outline hover:bg-surface-container-low"
+                        }
+                      `}
+                    >
+                      <Icon
+                        name={cat.icon}
+                        size={15}
+                        className={`shrink-0 transition-colors ${
+                          selected ? "text-forest-base" : "text-on-surface-variant/50 group-hover/cat:text-on-surface-variant"
+                        }`}
+                      />
+                      <span className="flex-1 leading-tight">{cat.label}</span>
+                      {selected && (
+                        <Icon name="check_circle" size={14} className="text-forest-base shrink-0" filled />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </FormField>
+
+            <div className="mt-4">
+              <FormField label="Additional Product Notes" hint="Describe specific products, private label requirements, or custom needs">
+                <TextArea
+                  value={form.customProductNote}
+                  onChange={(e) => setField("customProductNote", e.target.value)}
+                  placeholder="e.g., Looking for private label organic hair oil in 100ml bottles..."
+                  rows={3}
+                />
+              </FormField>
+            </div>
+          </FormSection>
+
+          {/* Section 6: Target Market */}
           <FormSection icon="public" title="Target Market / Distribution Territory">
             <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <FormField label="Country">
@@ -517,7 +850,7 @@ export default function B2BApplicationPage() {
             </FormField>
           </FormSection>
 
-          {/* Section 5: Preferred Communication */}
+          {/* Section 7: Preferred Communication */}
           <FormSection icon="forum" title="Preferred Communication Channel">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {COMMUNICATION_CHANNELS.map((ch) => {
@@ -541,6 +874,79 @@ export default function B2BApplicationPage() {
             </div>
           </FormSection>
 
+          {/* Section 8: Agreements */}
+          <FormSection icon="gavel" title="B2B Business Agreement">
+            <div className="space-y-3">
+              <div>
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="relative mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={form.agreeTerms}
+                      onChange={(e) => setField("agreeTerms", e.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <div className={`
+                      w-[18px] h-[18px] rounded-md border-2 flex items-center justify-center transition-all duration-200
+                      ${form.agreeTerms
+                        ? "bg-forest-base border-forest-base"
+                        : "border-outline-variant group-hover:border-outline"
+                      }
+                    `}>
+                      {form.agreeTerms && <Icon name="check" size={13} className="text-white" />}
+                    </div>
+                  </div>
+                  <span className="text-[13px] text-on-surface-variant leading-relaxed">
+                    I agree to the{" "}
+                    <a href="/policies/b2b-terms" className="text-forest-base font-semibold hover:text-antique-gold underline underline-offset-2 decoration-forest-base/30 transition-colors">
+                      B2B Business Terms & Conditions
+                    </a>
+                  </span>
+                </label>
+                {errors.agreeTerms && (
+                  <p className="mt-1.5 ml-8 flex items-center gap-1 text-[11px] text-terracotta font-medium">
+                    <Icon name="error" size={12} />
+                    {errors.agreeTerms}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="relative mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={form.agreePrivacy}
+                      onChange={(e) => setField("agreePrivacy", e.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <div className={`
+                      w-[18px] h-[18px] rounded-md border-2 flex items-center justify-center transition-all duration-200
+                      ${form.agreePrivacy
+                        ? "bg-forest-base border-forest-base"
+                        : "border-outline-variant group-hover:border-outline"
+                      }
+                    `}>
+                      {form.agreePrivacy && <Icon name="check" size={13} className="text-white" />}
+                    </div>
+                  </div>
+                  <span className="text-[13px] text-on-surface-variant leading-relaxed">
+                    I agree to Hakkiveda&apos;s{" "}
+                    <a href="/policies/privacy" className="text-forest-base font-semibold hover:text-antique-gold underline underline-offset-2 decoration-forest-base/30 transition-colors">
+                      Privacy Policy
+                    </a>
+                  </span>
+                </label>
+                {errors.agreePrivacy && (
+                  <p className="mt-1.5 ml-8 flex items-center gap-1 text-[11px] text-terracotta font-medium">
+                    <Icon name="error" size={12} />
+                    {errors.agreePrivacy}
+                  </p>
+                )}
+              </div>
+            </div>
+          </FormSection>
+
           {/* Submit */}
           <div className="border-t border-outline-variant/40 pt-6 mt-8">
             <button
@@ -556,14 +962,14 @@ export default function B2BApplicationPage() {
               ) : (
                 <>
                   <Icon name="send" size={18} />
-                  Submit B2B Enquiry
+                  Submit B2B Application
                 </>
               )}
             </button>
 
             <p className="text-xs text-on-surface-variant mt-3">
-              By submitting, you agree to our terms of commercial partnership. Your
-              information will be reviewed and kept confidential.
+              Your application will be reviewed by our admin team. We will contact you
+              once your business profile has been verified.
             </p>
           </div>
         </form>

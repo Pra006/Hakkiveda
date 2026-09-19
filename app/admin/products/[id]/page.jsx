@@ -9,6 +9,7 @@ import AdminStatusBadge from "@/components/admin/ui/AdminStatusBadge";
 import ProductForm from "@/components/admin/products/ProductForm";
 import VariantManager from "@/components/admin/products/VariantManager";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 export default function EditProductPage({ params }) {
   return (
@@ -57,6 +58,7 @@ function EditProduct({ params }) {
     if (!res.ok) throw new Error(json.error || "Could not save the product");
     setProduct((p) => ({ ...p, ...json }));
     setNotice({ type: "success", text: "Changes saved" });
+    toast.success("Product updated successfully");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -66,8 +68,10 @@ function EditProduct({ params }) {
     const json = await res.json();
     if (!res.ok) {
       setNotice({ type: "error", text: json.error || "Delete failed" });
+      toast.error(json.error || "Failed to delete product");
       return;
     }
+    toast.success("Product deleted");
     router.push("/admin/products");
   }
 

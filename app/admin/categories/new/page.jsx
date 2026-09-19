@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/ui/AdminPageHeader";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 export default function NewCategoryPage() {
   const router = useRouter();
@@ -40,9 +41,11 @@ export default function NewCategoryPage() {
         throw new Error(d.error || "Create failed");
       }
       const category = await res.json();
+      toast.success("Category created!");
       router.push(`/admin/categories/${category.id}`);
     } catch (err) {
       setError(err.message);
+      toast.error(err.message || "Failed to create category");
     } finally {
       setSaving(false);
     }

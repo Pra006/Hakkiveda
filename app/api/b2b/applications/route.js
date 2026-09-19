@@ -17,7 +17,6 @@ export async function POST(req) {
     const session = await requireAuth();
     const userId = session.user.id;
 
-    // Check for duplicate application
     const existing = await prisma.b2BApplication.findUnique({
       where: { userId },
     });
@@ -31,7 +30,6 @@ export async function POST(req) {
 
     const body = await req.json();
 
-    // Validate required fields
     const requiredFields = [
       "contactPerson",
       "companyName",
@@ -39,6 +37,12 @@ export async function POST(req) {
       "businessType",
       "phone",
       "businessEmail",
+      "citizenshipNumber",
+      "storeName",
+      "estimatedVolume",
+      "province",
+      "district",
+      "city",
     ];
     const errors = validateRequired(body, requiredFields);
     if (errors) {
@@ -52,11 +56,15 @@ export async function POST(req) {
       return errorResponse("Invalid phone number", 422);
     }
 
-    // Validate enum values
+    if (!body.citizenshipFrontUrl || !body.citizenshipBackUrl) {
+      return errorResponse("Citizenship documents are required", 422);
+    }
+
     const validBusinessTypes = [
       "DISTRIBUTOR", "WHOLESALER", "RETAILER", "IMPORTER",
       "ONLINE_SELLER", "PRIVATE_LABEL_BUYER", "CORPORATE_BUYER",
-      "INSTITUTIONAL_BUYER", "SALON_SPA", "OTHER",
+      "INSTITUTIONAL_BUYER", "SALON_SPA", "INDIVIDUAL",
+      "SOLE_PROPRIETORSHIP", "PARTNERSHIP", "PRIVATE_COMPANY", "OTHER",
     ];
     if (!validBusinessTypes.includes(body.businessType)) {
       return errorResponse("Invalid business type", 422);
@@ -66,7 +74,7 @@ export async function POST(req) {
       "LESS_THAN_100", "FROM_100_TO_500", "FROM_500_TO_1000",
       "FROM_1000_TO_5000", "MORE_THAN_5000", "CUSTOM_PROJECT",
     ];
-    if (body.estimatedVolume && !validVolumes.includes(body.estimatedVolume)) {
+    if (!validVolumes.includes(body.estimatedVolume)) {
       return errorResponse("Invalid order volume", 422);
     }
 
@@ -81,22 +89,46 @@ export async function POST(req) {
       data: {
         referenceNumber,
         userId,
-        contactPerson: body.contactPerson.trim(),
+        contactPersonName: body.contactPerson.trim(),
         companyName: body.companyName.trim(),
-        countryOfOp: body.countryOfOp.trim(),
+        country: body.countryOfOp.trim(),
         businessType: body.businessType,
         phone: body.phone.trim(),
         businessEmail: body.businessEmail.toLowerCase().trim(),
+        // Identity verification
+        citizenshipNumber: body.citizenshipNumber.trim(),
+        citizenshipFrontUrl: body.citizenshipFrontUrl,
+        citizenshipBackUrl: body.citizenshipBackUrl,
+        // Business details
+        storeName: body.storeName?.trim() || null,
+        businessRegNo: body.businessRegNo?.trim() || null,
+        panVatNo: body.panVatNo?.trim() || null,
+        businessPhone: body.businessPhone?.trim() || null,
+        estimatedOrderVolume: body.estimatedVolume || null,
+        estimatedPurchaseValue: body.estimatedMonthlyValue || null,
+        // Address
+        province: body.province || null,
+        district: body.district?.trim() || null,
+        city: body.city?.trim() || null,
+        streetAddress: body.streetAddress?.trim() || null,
+        postalCode: body.postalCode?.trim() || null,
+        // Store info
+        storeDescription: body.storeDescription?.trim() || null,
+        productCategories: body.productCategories || [],
+        // Products & requirements
         productsOfInterest: body.productsOfInterest || [],
         customProductNote: body.customProductNote || null,
-        estimatedVolume: body.estimatedVolume || null,
-        estimatedMonthlyValue: body.estimatedMonthlyValue || null,
+        // Target market
         targetCountry: body.targetCountry || null,
         targetProvince: body.targetProvince || null,
         targetCity: body.targetCity || null,
-        targetTerritory: body.targetTerritory || null,
+        targetMarket: body.targetTerritory || null,
         customMessage: body.customMessage || null,
-        preferredChannel: body.preferredChannel || "EMAIL",
+        // Communication
+        preferredCommunication: body.preferredChannel || "EMAIL",
+        // Agreements
+        termsAcceptedAt: body.agreeTerms ? new Date() : null,
+        privacyAcceptedAt: body.agreePrivacy ? new Date() : null,
       },
     });
 

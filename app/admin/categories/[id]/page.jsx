@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminPageHeader from "@/components/admin/ui/AdminPageHeader";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 export default function CategoryDetailPage() {
   const router = useRouter();
@@ -59,6 +60,7 @@ export default function CategoryDetailPage() {
         const d = await res.json();
         throw new Error(d.error || "Delete failed");
       }
+      toast.success("Category deleted");
       router.push("/admin/categories");
     } catch (err) {
       setError(err.message);

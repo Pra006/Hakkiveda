@@ -5,6 +5,7 @@ import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import { formatNPR } from "@/lib/utils";
 import { useCart } from "@/components/providers/CartProvider";
+import { toast } from "react-toastify";
 
 export default function VariantAndCart({ product }) {
   // Default to the first option that can actually be bought.
@@ -29,9 +30,10 @@ export default function VariantAndCart({ product }) {
     try {
       await addItem({ slug: product.slug, variantId, quantity: qty });
       setAdded(true);
+      toast.success("Added to cart!");
       setTimeout(() => setAdded(false), 2500);
-    } catch {
-      /* error surfaced below via cart context */
+    } catch (err) {
+      toast.error(err.message || "Could not add to cart");
     }
   }
 
@@ -41,13 +43,21 @@ export default function VariantAndCart({ product }) {
     try {
       await addItem({ slug: product.slug, variantId, quantity: qty });
       router.push("/checkout");
-    } catch {
-      /* error surfaced below via cart context */
+    } catch (err) {
+      toast.error(err.message || "Could not add to cart");
     }
   }
 
+  // Derive the displayed SKU: prefer the selected variant's SKU, fall back to product SKU.
+  const displaySku = variant?.sku || product.sku || null;
+
   return (
     <div className="mt-6">
+      {displaySku && (
+        <p className="mb-4 text-xs text-on-surface-variant">
+          SKU: <span className="font-semibold text-forest-deep">{displaySku}</span>
+        </p>
+      )}
       {product.hasVariants && (
         <div className="mb-5">
           <div className="flex items-baseline justify-between gap-3">

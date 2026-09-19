@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/ui/AdminPageHeader";
 import AdminStatusBadge from "@/components/admin/ui/AdminStatusBadge";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 function DetailRow({ label, children }) {
   return (
@@ -132,7 +133,7 @@ export default function B2BApplicationDetailPage() {
         setMoreInfoMessage("");
         setSuspendReason("");
       } else {
-        alert(data.error || "Failed to update");
+        toast.error(data.error || "Failed to update");
       }
     } finally {
       setUpdating(false);
@@ -150,7 +151,7 @@ export default function B2BApplicationDetailPage() {
       if (res.ok) fetchApp();
       else {
         const data = await res.json();
-        alert(data.error || "Failed to update verification");
+        toast.error(data.error || "Failed to update verification");
       }
     } finally {
       setUpdating(false);
@@ -170,7 +171,7 @@ export default function B2BApplicationDetailPage() {
         setDocUrls((p) => ({ ...p, [key]: data.signedUrl }));
         window.open(data.signedUrl, "_blank", "noopener");
       } else {
-        alert("Failed to load document");
+        toast.error("Failed to load document");
       }
     } finally {
       setDocLoading((p) => ({ ...p, [key]: false }));
@@ -498,7 +499,7 @@ export default function B2BApplicationDetailPage() {
           title="Request More Information"
           onClose={() => setShowMoreInfoModal(false)}
           onSubmit={() => {
-            if (!moreInfoMessage.trim()) { alert("Please enter a message."); return; }
+            if (!moreInfoMessage.trim()) { toast.warn("Please enter a message."); return; }
             updateStatus("MORE_INFORMATION_REQUIRED", { moreInfoMessage });
           }}
           submitLabel="Send Request"
@@ -522,7 +523,7 @@ export default function B2BApplicationDetailPage() {
           title="Suspend Application"
           onClose={() => setShowSuspendModal(false)}
           onSubmit={() => {
-            if (!suspendReason.trim()) { alert("Please enter a reason."); return; }
+            if (!suspendReason.trim()) { toast.warn("Please enter a reason."); return; }
             updateStatus("SUSPENDED", { suspendedReason: suspendReason });
           }}
           submitLabel="Suspend"

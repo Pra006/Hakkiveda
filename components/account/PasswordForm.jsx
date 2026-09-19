@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Button from "@/components/ui/Button";
+import { toast } from "react-toastify";
 
 export default function PasswordForm() {
   const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
@@ -18,11 +19,13 @@ export default function PasswordForm() {
 
     if (form.newPassword !== form.confirmPassword) {
       setMessage({ type: "error", text: "Passwords don't match" });
+      toast.error("Passwords don't match");
       return;
     }
 
     if (form.newPassword.length < 8) {
       setMessage({ type: "error", text: "Password must be at least 8 characters" });
+      toast.error("Password must be at least 8 characters");
       return;
     }
 
@@ -39,9 +42,11 @@ export default function PasswordForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to change password");
       setMessage({ type: "success", text: "Password changed successfully" });
+      toast.success("Password changed successfully");
       setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (err) {
       setMessage({ type: "error", text: err.message });
+      toast.error(err.message || "Failed to change password");
     } finally {
       setLoading(false);
     }

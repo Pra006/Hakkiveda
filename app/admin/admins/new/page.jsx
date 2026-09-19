@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/ui/AdminPageHeader";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 const ROLES = [
   { value: "ADMIN", label: "Admin" },
@@ -34,6 +35,7 @@ export default function NewAdminPage() {
       const match = json.data?.find((a) => a.user?.email === email);
       if (match) {
         setError("This user is already an admin");
+        toast.warn("This user is already an admin");
       }
     } catch {
       // ignore lookup errors
@@ -55,11 +57,14 @@ export default function NewAdminPage() {
       const json = await res.json();
       if (!res.ok) {
         setError(json.error || "Failed to create admin");
+        toast.error(json.error || "Failed to create admin");
         return;
       }
+      toast.success("Admin created successfully!");
       router.push("/admin/admins");
     } catch {
       setError("An unexpected error occurred");
+      toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
     }

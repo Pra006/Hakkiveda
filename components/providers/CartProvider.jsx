@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { toast } from "react-toastify";
 
 const CartContext = createContext(null);
 
@@ -54,16 +55,58 @@ export default function CartProvider({ children }) {
     };
   }, [signedIn]);
 
-  const addItem = useCallback((payload) => request("POST", { body: payload }), [request]);
+  const addItem = useCallback(
+    (payload) => request("POST", { body: payload }),
+    [request]
+  );
   const setQuantity = useCallback(
-    (itemId, quantity) => request("PATCH", { body: { itemId, quantity } }),
+    async (itemId, quantity) => {
+      try {
+        const data = await request("PATCH", { body: { itemId, quantity } });
+        return data;
+      } catch (err) {
+        toast.error(err.message || "Could not update quantity");
+        throw err;
+      }
+    },
     [request]
   );
   const removeItem = useCallback(
-    (itemId) => request("DELETE", { query: `?itemId=${encodeURIComponent(itemId)}` }),
+    async (itemId) => {
+      try {
+        const data = await request("DELETE", { query: `?itemId=${encodeURIComponent(itemId)}` });
+        toast.success("Item removed from cart");
+        return data;
+      } catch (err) {
+        toast.error(err.message || "Could not remove item");
+        throw err;
+      }
+    },
     [request]
   );
-  const clearCart = useCallback(() => request("DELETE"), [request]);
+  const clearCart = useCallback(async () => {
+    try {
+      const data = await request("DELETE");
+      toast.success("Cart cleared");
+      return data;
+    } catch (err) {
+      toast.error(err.message || "Could not clear cart");
+      throw err;
+    }
+  }, [request]);
+
+  /** Re-fetch the cart from the server (e.g. after a successful payment clears it in the DB). */
+  const refreshCart = useCallback(async () => {
+    try {
+      const res = await fetch("/api/cart");
+      const data = res.ok ? await res.json() : EMPTY;
+      setCart(data);
+      return data;
+    } catch {
+      setCart(EMPTY);
+      return EMPTY;
+    }
+  }, []);
 
   // Signed-out visitors always see an empty cart.
   const visible = signedIn ? cart : EMPTY;
@@ -81,6 +124,7 @@ export default function CartProvider({ children }) {
         setQuantity,
         removeItem,
         clearCart,
+        refreshCart,
       }}
     >
       {children}

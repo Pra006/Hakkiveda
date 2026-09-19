@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 const input =
   "w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-blue-300 focus:ring-1 focus:ring-blue-200 outline-none";
@@ -131,6 +132,7 @@ export default function VariantManager({ productId, onStockChange }) {
       return json;
     } catch (err) {
       setNotice({ type: "error", text: err.message });
+      toast.error(err.message || "Operation failed");
       throw err;
     } finally {
       setBusy(false);
@@ -140,6 +142,7 @@ export default function VariantManager({ productId, onStockChange }) {
   const save = async (variantId, data) => {
     await call(`/api/admin/products/${productId}/variants/${variantId}`, "PATCH", data);
     setNotice({ type: "success", text: "Option saved" });
+    toast.success("Variant saved");
   };
 
   const remove = async (variant) => {

@@ -8,14 +8,23 @@ import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import { formatNPR } from "@/lib/utils";
 import { useCart } from "@/components/providers/CartProvider";
+import { toast } from "react-toastify";
 
 const steps = ["Address", "Delivery", "Review", "Payment"];
 
 const PAYMENT_METHODS = [
   ["COD", "Cash on Delivery", "payments"],
   ["ESEWA", "eSewa", "account_balance_wallet"],
-  ["KHALTI", "Khalti", "account_balance_wallet"],
-  ["BANK_TRANSFER", "Bank Transfer", "account_balance"],
+];
+
+const NEPAL_PROVINCES = [
+  "Koshi",
+  "Madhesh",
+  "Bagmati",
+  "Gandaki",
+  "Lumbini",
+  "Karnali",
+  "Sudurpashchim",
 ];
 
 function Field({ label, required, error, ...rest }) {
@@ -36,7 +45,7 @@ function Field({ label, required, error, ...rest }) {
 
 export default function CheckoutView() {
   const router = useRouter();
-  const { items, subtotal, shipping, tax, total, count, loading, signedIn } = useCart();
+  const { items, subtotal, shipping, tax, total, count, loading, signedIn, refreshCart } = useCart();
 
   const [form, setForm] = useState({
     fullName: "",
@@ -61,6 +70,7 @@ export default function CheckoutView() {
     setTouched(true);
     if (missing.length) {
       setError("Please complete the required shipping fields.");
+      toast.error("Please complete all required shipping fields.");
       return;
     }
     setPlacing(true);
@@ -74,15 +84,19 @@ export default function CheckoutView() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Could not place your order");
 
-      // For eSewa: hand off to the redirect page which POSTs the signed form.
-      // Any other method (COD, etc.) confirms as before.
       if (paymentMethod === "ESEWA") {
+        // eSewa: hand off to the redirect page which POSTs the signed form.
+        // Cart will be refreshed on the result page after payment confirmation.
         router.push(`/payment/esewa/redirect?orderId=${encodeURIComponent(json.order.id)}`);
       } else {
+        // COD etc.: cart was already cleared in the DB during order creation.
+        // Refresh the frontend cart state so the header count updates immediately.
+        await refreshCart();
         router.push(`/account/orders?placed=${json.order.orderNumber}`);
       }
     } catch (err) {
       setError(err.message);
+      toast.error(err.message || "Could not place your order");
       setPlacing(false);
     }
   }
@@ -148,9 +162,23 @@ export default function CheckoutView() {
               <Field label="Phone" required placeholder="98XXXXXXXX"
                 value={form.phone} error={touched && !form.phone.trim()}
                 onChange={(e) => update("phone", e.target.value)} />
-              <Field label="Province" required placeholder="Bagmati"
-                value={form.province} error={touched && !form.province.trim()}
-                onChange={(e) => update("province", e.target.value)} />
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+                  Province <span className="text-terracotta">*</span>
+                </span>
+                <select
+                  value={form.province}
+                  onChange={(e) => update("province", e.target.value)}
+                  className={`bg-surface-container-lowest border rounded px-3 py-2.5 text-sm outline-none focus:border-antique-gold ${
+                    touched && !form.province.trim() ? "border-terracotta" : "border-outline-variant"
+                  }`}
+                >
+                  <option value="">Select province</option>
+                  {NEPAL_PROVINCES.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </label>
               <Field label="City" required placeholder="Kathmandu"
                 value={form.city} error={touched && !form.city.trim()}
                 onChange={(e) => update("city", e.target.value)} />

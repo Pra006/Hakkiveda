@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 /* ══════════════════════════════════════════════
    Constants
@@ -310,6 +311,7 @@ function OtpVerificationStep({ email, purpose, onVerified, onBack }) {
     e.preventDefault();
     if (otp.length !== 6) {
       setError("Please enter the 6-digit code.");
+      toast.error("Please enter the 6-digit code.");
       return;
     }
     setLoading(true);
@@ -323,6 +325,7 @@ function OtpVerificationStep({ email, purpose, onVerified, onBack }) {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Verification failed.");
+          toast.error(data.error || "Verification failed.");
         return;
       }
       onVerified(data.verifyToken);
@@ -680,7 +683,8 @@ function CustomerForm({ globalError, setGlobalError }) {
       });
       const data = await res.json();
       if (!res.ok) { setGlobalError(data.error || "Registration failed."); return; }
-      router.push("/auth/login?registered=true");
+      toast.success("Account created successfully! Please sign in.");
+        router.push("/auth/login?registered=true");
     } catch {
       setGlobalError("Something went wrong. Please try again.");
     } finally {

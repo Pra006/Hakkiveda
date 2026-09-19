@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 export default function CancelOrderButton({ orderId }) {
   const router = useRouter();
@@ -17,9 +18,11 @@ export default function CancelOrderButton({ orderId }) {
       const res = await fetch(`/api/orders/${orderId}/cancel`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to cancel order");
+      toast.success("Order cancelled successfully");
       router.refresh();
     } catch (err) {
       setError(err.message);
+      toast.error(err.message || "Failed to cancel order");
       setLoading(false);
       setConfirming(false);
     }

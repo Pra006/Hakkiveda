@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 const input =
   "w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-blue-300 focus:ring-1 focus:ring-blue-200 outline-none";
@@ -41,7 +42,8 @@ export const emptyProduct = {
 export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel, hasVariants = false }) {
   const [form, setForm] = useState({ ...emptyProduct, ...initial });
   const [categories, setCategories] = useState([]);
-  const [imageDraft, setImageDraft] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [slugEdited, setSlugEdited] = useState(Boolean(initial?.slug));
@@ -65,20 +67,35 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
     }));
   }
 
-  function addImage() {
-    const url = imageDraft.trim();
-    if (!url) return;
-    if (!/^(https?:\/\/|\/)/.test(url)) {
-      setError("Image must be a URL or an absolute path");
+  async function handleFileUpload(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (files.length + form.images.length > 10) {
+      setError("Maximum 10 images per product");
+      toast.error("Maximum 10 images per product");
       return;
     }
-    if (form.images.includes(url)) {
-      setError("That image is already attached");
-      return;
-    }
+    setUploading(true);
     setError("");
-    update("images", [...form.images, url]);
-    setImageDraft("");
+    try {
+      const formData = new FormData();
+      files.forEach((f) => formData.append("files", f));
+      const res = await fetch("/api/upload/product-images", { method: "POST", body: formData });
+      if (!res.ok) {
+        const text = await res.text();
+        let msg = "Upload failed";
+        try { msg = JSON.parse(text).error || msg; } catch {}
+        throw new Error(msg);
+      }
+      const json = await res.json();
+      update("images", [...form.images, ...json.map((r) => r.url)]);
+    } catch (err) {
+      setError(err.message || "Upload failed");
+      toast.error(err.message || "Image upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   function moveImage(index, delta) {
@@ -118,6 +135,7 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
     const errs = clientErrors();
     if (errs.length) {
       setError(errs.join(". "));
+      toast.error("Please fix the form errors");
       return;
     }
     setSaving(true);
@@ -140,6 +158,7 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
       });
     } catch (err) {
       setError(err.message || "Something went wrong");
+      toast.error(err.message || "Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -241,26 +260,26 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
       {/* Images */}
       <section className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
         <h2 className="font-semibold text-slate-900">Images</h2>
-        <div className="flex gap-2">
+        <div>
           <input
-            className={input}
-            placeholder="https://… or /uploads/photo.jpg"
-            value={imageDraft}
-            onChange={(e) => setImageDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addImage();
-              }
-            }}
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            onChange={handleFileUpload}
+            className="hidden"
+            id="product-image-upload"
           />
           <button
             type="button"
-            onClick={addImage}
-            className="shrink-0 px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border-2 border-dashed border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-600 hover:text-blue-600 disabled:opacity-60 transition-colors"
           >
-            Add
+            <Icon name={uploading ? "hourglass_empty" : "cloud_upload"} size={20} />
+            {uploading ? "Uploading…" : "Choose images"}
           </button>
+          <p className="text-xs text-slate-400 mt-1.5">JPG, PNG, or WebP. Max 5 MB each, up to 10 images.</p>
         </div>
 
         {form.images.length === 0 ? (

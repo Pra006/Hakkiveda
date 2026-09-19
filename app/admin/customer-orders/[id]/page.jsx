@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/ui/AdminPageHeader";
 import AdminStatusBadge from "@/components/admin/ui/AdminStatusBadge";
 import Icon from "@/components/ui/Icon";
+import { toast } from "react-toastify";
 
 const STATUSES = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"];
 
@@ -34,6 +35,9 @@ export default function OrderDetailPage() {
         // Refetch to include new timeline events and normalized fields
         const fresh = await fetch(`/api/admin/customer-orders/${id}`).then((r) => r.json());
         if (!fresh.error) setOrder(fresh);
+        toast.success("Order updated");
+      } else {
+        toast.error("Failed to update order");
       }
     } finally {
       setUpdating(false);
@@ -245,7 +249,8 @@ export default function OrderDetailPage() {
           <div className="divide-y divide-slate-100">
             {order.payments.map((p) => {
               const isEsewa = p.method === "ESEWA";
-              const canVerify = isEsewa && p.transactionUuid && p.status !== "COMPLETED";
+              // Allow re-verification for PENDING, FAILED, or any non-terminal eSewa payment
+              const canVerify = isEsewa && p.transactionUuid && p.status !== "COMPLETED" && p.status !== "REFUNDED";
               const verify = async () => {
                 setUpdating(true);
                 try {
@@ -255,42 +260,69 @@ export default function OrderDetailPage() {
                     body: JSON.stringify({ paymentId: p.id }),
                   });
                   const data = await r.json();
+                  // Always refetch to get updated state
+                  const fresh = await fetch(`/api/admin/customer-orders/${id}`).then((x) => x.json());
+                  if (!fresh.error) setOrder(fresh);
                   if (r.ok) {
-                    const fresh = await fetch(`/api/admin/customer-orders/${id}`).then((x) => x.json());
-                    if (!fresh.error) setOrder(fresh);
-                    alert(`Verification result: ${data.status}${data.error ? " — " + data.error : ""}`);
+                    const msg = data.status === "COMPLETED"
+                      ? "Payment verified successfully — marked as COMPLETED."
+                      : data.status === "NOT_FOUND"
+                      ? "eSewa has not registered this transaction yet. The payment is NOT marked as failed — try again in a few minutes."
+                      : data.status === "FAILED"
+                      ? `Payment verification confirmed FAILED: ${data.error || "eSewa rejected the transaction."}`
+                      : `Verification returned: ${data.status}${data.error ? " — " + data.error : ""}`;
+                    if (data.status === "COMPLETED") toast.success(msg);
+                    else if (data.status === "FAILED") toast.error(msg);
+                    else toast.info(msg);
                   } else {
-                    alert(data.error || "Verification failed");
+                    toast.error(data.error || "Verification request failed");
                   }
                 } finally {
                   setUpdating(false);
                 }
               };
+
+              const statusColor = {
+                COMPLETED: "text-green-700 bg-green-50 border-green-200",
+                PENDING: "text-amber-700 bg-amber-50 border-amber-200",
+                FAILED: "text-red-700 bg-red-50 border-red-200",
+                REFUNDED: "text-slate-700 bg-slate-50 border-slate-200",
+              }[p.status] || "text-slate-600 bg-slate-50 border-slate-200";
+
               return (
-                <div key={p.id} className="px-6 py-4 flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{p.currency || "NPR"} {(p.amount || 0).toLocaleString()}</p>
-                    <p className="text-xs text-slate-500 truncate">
-                      {p.method}
-                      {p.transactionUuid ? ` · uuid ${p.transactionUuid}` : ""}
-                      {p.providerRefId ? ` · eSewa ref ${p.providerRefId}` : ""}
-                      {p.transactionId && !p.transactionUuid ? ` · txn ${p.transactionId}` : ""}
-                      {" · "}
-                      {new Date(p.completedAt || p.paidAt || p.createdAt).toLocaleString()}
+                <div key={p.id} className="px-6 py-4 space-y-2">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{p.currency || "NPR"} {(p.amount || 0).toLocaleString()}</p>
+                      <p className="text-xs text-slate-500 truncate">
+                        {p.method}
+                        {p.transactionUuid ? ` · uuid ${p.transactionUuid}` : ""}
+                        {p.providerRefId ? ` · eSewa ref ${p.providerRefId}` : ""}
+                        {p.transactionId && !p.transactionUuid ? ` · txn ${p.transactionId}` : ""}
+                        {" · "}
+                        {new Date(p.completedAt || p.paidAt || p.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-lg border ${statusColor}`}>
+                        {p.status}
+                      </span>
+                      {canVerify && (
+                        <button
+                          onClick={verify}
+                          disabled={updating}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                        >
+                          {updating ? "Verifying…" : "Verify with eSewa"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {p.status === "FAILED" && p.notes && (
+                    <p className="text-xs text-red-600 bg-red-50 rounded px-2 py-1">
+                      Reason: {p.notes}
                     </p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <AdminStatusBadge status={p.status} />
-                    {canVerify && (
-                      <button
-                        onClick={verify}
-                        disabled={updating}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
-                      >
-                        Verify with eSewa
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
               );
             })}

@@ -11,21 +11,26 @@ import ProductCard from "@/components/storefront/ProductCard";
 import ProductGallery from "@/components/product/ProductGallery";
 import VariantAndCart from "@/components/product/VariantAndCart";
 import ReviewList from "@/components/product/ReviewList";
-import { getProduct, getVendor, productsByCategory, products } from "@/lib/data";
+import { getVendor } from "@/lib/data";
+import { getStoreProduct, listStoreProducts, listStoreProductsByCategory } from "@/lib/catalog";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const p = getProduct(slug);
+  const p = await getStoreProduct(slug);
   return { title: p ? p.name : "Product" };
 }
 
 export default async function ProductPage({ params }) {
   const { slug } = await params;
-  const product = getProduct(slug);
+  const product = await getStoreProduct(slug);
   if (!product) return notFound();
   const vendor = getVendor(product.vendor);
-  const related = productsByCategory(product.category).filter((p) => p.id !== product.id);
-  const froths = products.filter((p) => p.id !== product.id).slice(0, 3);
+  const [categoryProducts, allProducts] = await Promise.all([
+    product.category ? listStoreProductsByCategory(product.category) : Promise.resolve([]),
+    listStoreProducts(),
+  ]);
+  const related = categoryProducts.filter((p) => p.id !== product.id);
+  const froths = allProducts.filter((p) => p.id !== product.id).slice(0, 3);
 
   return (
     <StorefrontShell>
@@ -64,7 +69,6 @@ export default async function ProductPage({ params }) {
 
             <div className="mt-4 flex items-center gap-4">
               <Rating value={product.rating} count={product.reviewCount} />
-              <span className="text-xs text-on-surface-variant">SKU: AAD-{product.id.toUpperCase()}</span>
             </div>
 
             <div className="mt-6">
@@ -80,7 +84,7 @@ export default async function ProductPage({ params }) {
                 ["local_shipping", "Free delivery above NPR 2,999"],
                 ["undo", "7-day easy returns"],
                 ["encrypted", "Secure checkout"],
-                ["verified", "Vendor-verified authentic"],
+                ["verified", "B2B Business-verified authentic"],
               ].map(([icon, label]) => (
                 <div key={label} className="flex items-center gap-2 text-forest-deep">
                   <Icon name={icon} size={18} className="text-antique-gold" />
@@ -127,7 +131,7 @@ export default async function ProductPage({ params }) {
                 {[
                   ["Brand", product.brand],
                   ["Category", product.category.replace(/-/g, " ")],
-                  ["Vendor", vendor?.name],
+                  ["B2B Business", vendor?.name],
                   ["Country of Origin", "Nepal"],
                   ["Storage", "Cool, dry place away from sunlight"],
                   ["Shelf Life", "24 months from date of manufacture"],
@@ -140,7 +144,7 @@ export default async function ProductPage({ params }) {
               </dl>
             </div>
 
-            <ReviewList productRating={product.rating} count={product.reviewCount} />
+            <ReviewList productId={product.id} />
           </div>
 
           <aside className="space-y-6">
@@ -170,7 +174,7 @@ export default async function ProductPage({ params }) {
       <Section className="pb-16">
         <SectionHeader eyebrow="Related" title="You may also like." />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          {(related.length ? related : products).slice(0, 4).map((p) => (
+          {(related.length ? related : allProducts).slice(0, 4).map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>

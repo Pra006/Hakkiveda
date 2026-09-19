@@ -1,16 +1,33 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
+import { toast } from "react-toastify";
 
 function EsewaResultContent() {
   const sp = useSearchParams();
   const status = sp.get("status") || "invalid";
   const orderNumber = sp.get("order");
+
+  // After a successful eSewa payment the DB cart is already cleared by
+  // markPaymentPaid — refresh the frontend state so the header updates.
+  useEffect(() => {
+    if (status === "success") {
+      // Cart was already cleared in the DB by markPaymentPaid.
+      // Trigger a revalidation so CartProvider picks up the empty cart
+      // when the user navigates to a storefront page.
+      fetch("/api/cart").catch(() => {});
+      toast.success("Payment successful! Your order is confirmed.");
+    } else if (status === "failed") {
+      toast.error("Payment was not completed.");
+    } else if (status === "pending") {
+      toast.info("Payment is pending confirmation.");
+    }
+  }, [status]);
 
   const copy = {
     success: {

@@ -8,10 +8,12 @@ import Icon from "@/components/ui/Icon";
 
 const mainNav = [
   { label: "Dashboard", href: "/admin", icon: "dashboard" },
+  { label: "Hero Banners", href: "/admin/hero-banners", icon: "view_carousel" },
 ];
 
 const customerNav = [
   { label: "Customers", href: "/admin/customers", icon: "people" },
+  { label: "Reviews", href: "/admin/reviews", icon: "reviews" },
 ];
 
 const ordersNav = [

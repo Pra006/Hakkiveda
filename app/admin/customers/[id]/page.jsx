@@ -9,6 +9,7 @@ import Icon from "@/components/ui/Icon";
 import CustomerOrderHistory from "@/components/admin/customers/CustomerOrderHistory";
 import CustomerWishlist from "@/components/admin/customers/CustomerWishlist";
 import CustomerActivity from "@/components/admin/customers/CustomerActivity";
+import { toast } from "react-toastify";
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
@@ -46,8 +47,10 @@ export default function CustomerDetailPage() {
       if (!res.ok) throw new Error(json.error || "Update failed");
       await refresh();
       setNotice({ type: "success", text: `Customer ${action.toLowerCase()}d` });
+      toast.success(`Customer ${action.toLowerCase()}d`);
     } catch (err) {
       setNotice({ type: "error", text: err.message });
+      toast.error(err.message || "Update failed");
     } finally {
       setUpdating(false);
     }
