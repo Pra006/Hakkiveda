@@ -1,13 +1,9 @@
 import { requireAdmin, jsonResponse, errorResponse } from "@/lib/admin";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { uploadPublicImage } from "@/lib/cloudinary";
 import crypto from "crypto";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "blogs");
-
-const EXT_MAP = { "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 export async function POST(request) {
   try {
@@ -24,14 +20,14 @@ export async function POST(request) {
       return errorResponse("File too large. Maximum 5 MB.", 400);
     }
 
-    await mkdir(UPLOAD_DIR, { recursive: true });
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = EXT_MAP[file.type] || "jpg";
-    const filename = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
-    await writeFile(path.join(UPLOAD_DIR, filename), buffer);
+    const publicId = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
+    const result = await uploadPublicImage(buffer, {
+      folder: "hakkiveda/blogs",
+      publicId,
+    });
 
-    return jsonResponse({ url: `/uploads/blogs/${filename}` });
+    return jsonResponse({ url: result.secure_url, publicId: result.public_id });
   } catch (err) {
     if (err instanceof Response) return err;
     console.error("[BLOG_IMAGE_UPLOAD_ERROR]", err);

@@ -1,13 +1,9 @@
 import { requireAdmin, jsonResponse, errorResponse } from "@/lib/admin";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { uploadPublicImage } from "@/lib/cloudinary";
 import crypto from "crypto";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products");
-
-const EXT_MAP = { "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 export async function POST(request) {
   try {
@@ -29,15 +25,15 @@ export async function POST(request) {
       }
     }
 
-    await mkdir(UPLOAD_DIR, { recursive: true });
-
     const results = [];
     for (const file of files) {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const ext = EXT_MAP[file.type] || "jpg";
-      const filename = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
-      await writeFile(path.join(UPLOAD_DIR, filename), buffer);
-      results.push({ url: `/uploads/products/${filename}` });
+      const publicId = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
+      const result = await uploadPublicImage(buffer, {
+        folder: "hakkiveda/products",
+        publicId,
+      });
+      results.push({ url: result.secure_url, publicId: result.public_id });
     }
 
     return jsonResponse(results);

@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { validateFile } from "@/lib/cloudinary";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-
-const UPLOAD_DIR = path.join(process.cwd(), "private-uploads", "b2b-documents");
+import { validateFile, uploadPrivateDocument } from "@/lib/cloudinary";
+import crypto from "crypto";
 
 export async function POST(request) {
   try {
@@ -24,20 +21,15 @@ export async function POST(request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = file.name?.split(".").pop()?.toLowerCase() || "jpg";
-    const filename = `${userId}_${Date.now()}.${ext}`;
+    const publicId = `${userId}_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
 
-    await mkdir(UPLOAD_DIR, { recursive: true });
-    const filepath = path.join(UPLOAD_DIR, filename);
-    await writeFile(filepath, buffer);
-
-    const url = `/api/upload/private/serve/${filename}`;
+    const result = await uploadPrivateDocument(buffer, { public_id: publicId });
 
     return NextResponse.json({
-      url,
-      publicId: filename,
-      format: ext,
-      bytes: buffer.length,
+      url: result.secure_url,
+      publicId: result.public_id,
+      format: result.format,
+      bytes: result.bytes,
     });
   } catch (error) {
     console.error("[PRIVATE_UPLOAD_ERROR]", error?.message || error);
