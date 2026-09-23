@@ -312,14 +312,22 @@ model Product {
   compareAt   Float?
   images      String[]
   stock       Int      @default(0)
-  moq         Int      @default(1)
-  isB2B       Boolean  @default(false)
+  moq             Int      @default(1)
+  b2bMinOrderQty  Int?
+  isB2B           Boolean  @default(false)
   isActive    Boolean  @default(true)
 
   // Admin rating override
   adminRating          Float?   
   adminReviewCount     Int?     
   isAdminRatingEnabled Boolean  @default(false)
+
+  // Featured product controls
+  isFeatured    Boolean  @default(false)
+  featuredOrder Int?
+
+  // New arrival flag — toggled by the admin in the product form
+  isNewArrival  Boolean  @default(false)
 
   category Category? @relation(fields: [categoryId], references: [id])
 
@@ -339,6 +347,7 @@ model Product {
   b2bOrderItems     B2BOrderItem[]
   b2bInvoiceItems   B2BInvoiceItem[]
   b2bCartItems      B2BCartItem[]
+  salePromotions    SalePromotionProduct[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -347,6 +356,8 @@ model Product {
   @@index([slug])
   @@index([sku])
   @@index([isB2B])
+  @@index([isFeatured])
+  @@index([isNewArrival])
   @@map("products")
 }
 
@@ -362,10 +373,11 @@ model ProductVariant {
   sku       String?  @unique
   price     Float
   compareAt Float?
-  stock     Int      @default(0)
-  images    String[]
-  isActive  Boolean  @default(true)
-  sortOrder Int      @default(0)
+  stock          Int      @default(0)
+  b2bMinOrderQty Int?
+  images         String[]
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
 
   product            Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
   customerCartItems  CustomerCartItem[]
@@ -1399,4 +1411,79 @@ model HeroBanner {
   @@index([isActive, displayOrder])
   @@index([startDate, endDate])
   @@map("hero_banners")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BLOG
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model BlogPost {
+  id            String         @id @default(cuid())
+  title         String
+  slug          String         @unique
+  featuredImage String?
+  excerpt       String?        @db.Text
+  content       String?        @db.Text
+  category      String?
+  author        String?
+  tags          String[]       // PostgreSQL string array
+  status        BlogPostStatus @default(DRAFT)
+  publishedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([category])
+  @@map("blog_posts")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIDEO RITUALS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SALE PROMOTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model SalePromotion {
+  id          String    @id @default(cuid())
+  title       String
+  subtitle    String?   @db.Text
+  bannerImage String?
+  isActive    Boolean   @default(false)
+  startDate   DateTime
+  endDate     DateTime
+
+  products    SalePromotionProduct[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([startDate, endDate])
+  @@map("sale_promotions")
+}
+
+model SalePromotionProduct {
+  id           String @id @default(cuid())
+  promotionId  String
+  productId    String
+  displayOrder Int    @default(0)
+
+  promotion SalePromotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, productId])
+  @@unique([promotionId, displayOrder])
+  @@index([promotionId])
+  @@index([productId])
+  @@map("sale_promotion_products")
 }

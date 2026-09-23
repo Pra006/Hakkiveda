@@ -2,16 +2,21 @@ import prisma from "@/lib/prisma";
 import { jsonResponse, errorResponse } from "@/lib/b2b";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import { rateLimitByIP } from "@/lib/rate-limit";
+import { isValidPassword } from "@/lib/validation";
 
 export async function PUT(request) {
   try {
+    const rateLimited = rateLimitByIP(request, "auth-moderate");
+    if (rateLimited) return rateLimited;
+
     const session = await auth();
     if (!session?.user?.id) return errorResponse("Authentication required", 401);
 
     const { currentPassword, newPassword } = await request.json();
 
-    if (!newPassword || newPassword.length < 8) {
-      return errorResponse("New password must be at least 8 characters", 400);
+    if (!isValidPassword(newPassword)) {
+      return errorResponse("New password must be 8-128 characters", 400);
     }
 
     const user = await prisma.user.findUnique({

@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { generateOtp, hashOtp, OTP_EXPIRY_MINUTES } from "@/lib/otp";
 import { sendOtpEmail } from "@/lib/brevo";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isValidEmail } from "@/lib/validation";
 
 export async function POST(request) {
   try {
@@ -11,6 +12,13 @@ export async function POST(request) {
     if (!email || !purpose) {
       return NextResponse.json(
         { error: "Email and purpose are required." },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidEmail(email)) {
+      return NextResponse.json(
+        { error: "Invalid email format." },
         { status: 400 }
       );
     }
@@ -85,8 +93,9 @@ export async function POST(request) {
     });
 
     if (!emailResult.success) {
+      console.error("[OTP_EMAIL_FAILED]", emailResult.error);
       return NextResponse.json(
-        { error: emailResult.error },
+        { error: "Failed to send verification code. Please try again." },
         { status: 500 }
       );
     }

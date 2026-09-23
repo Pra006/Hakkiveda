@@ -3,11 +3,16 @@ import StorefrontShell from "@/components/layout/StorefrontShell";
 import { Section, SectionHeader } from "@/components/ui/Section";
 import CategoryCard from "@/components/storefront/CategoryCard";
 import Icon from "@/components/ui/Icon";
-import { categories } from "@/lib/data";
+import { listStoreCategories } from "@/lib/catalog";
 
 export const metadata = { title: "Collections" };
 
-export default function CategoriesPage() {
+// Categories are admin-managed, so reflect the database on every request.
+export const dynamic = "force-dynamic";
+
+export default async function CategoriesPage() {
+  const categories = await listStoreCategories();
+
   return (
     <StorefrontShell>
       <Section className="py-6">
@@ -22,9 +27,15 @@ export default function CategoriesPage() {
           eyebrow="Shop by Collection"
           title="Curated categories of Nepal's living crafts."
         />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {categories.map((c) => <CategoryCard key={c.slug} category={c} />)}
-        </div>
+        {categories.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {categories.map((c) => <CategoryCard key={c.slug} category={c} />)}
+          </div>
+        ) : (
+          <p className="text-center text-on-surface-variant py-12">
+            No collections available yet. Check back soon!
+          </p>
+        )}
       </Section>
     </StorefrontShell>
   );

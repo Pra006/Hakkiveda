@@ -3,7 +3,6 @@ import StorefrontShell from "@/components/layout/StorefrontShell";
 import { Section } from "@/components/ui/Section";
 import ShopBrowser from "@/components/storefront/ShopBrowser";
 import Icon from "@/components/ui/Icon";
-import { vendors } from "@/lib/data";
 import { listStoreProducts, listStoreCategories } from "@/lib/catalog";
 
 export const metadata = { title: "Shop All" };
@@ -28,13 +27,13 @@ export default async function ShopPage() {
         <div>
           <h1 className="font-headline text-3xl sm:text-4xl text-forest-deep">All Products</h1>
           <p className="text-sm text-on-surface-variant mt-1">
-            Browse the full Hakkiveda catalog — filter by category, B2B business, price, rating, and availability.
+            Browse the full Hakkiveda catalog — filter by category, price, rating, and availability.
           </p>
         </div>
       </Section>
 
       <Section className="pb-16">
-        <ShopBrowser products={products} categories={categories} vendors={vendors} />
+        <ShopBrowser products={products} categories={categories} />
       </Section>
     </StorefrontShell>
   );

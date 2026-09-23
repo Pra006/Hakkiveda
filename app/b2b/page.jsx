@@ -10,7 +10,7 @@ export const metadata = { title: "B2B Dashboard — Hakkiveda" };
 
 export default async function B2BDashboard() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/auth/login?callbackUrl=/b2b");
+  if (!session?.user?.id) redirect("/auth/login");
 
   const membership = await prisma.b2BOrganizationMember.findFirst({
     where: { userId: session.user.id, status: "ACTIVE" },

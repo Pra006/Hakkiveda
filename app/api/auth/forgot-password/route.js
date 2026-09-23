@@ -2,6 +2,8 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/brevo";
+import { rateLimitByIP } from "@/lib/rate-limit";
+import { isValidEmail } from "@/lib/validation";
 
 const TOKEN_EXPIRY_MINUTES = 30;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -9,9 +11,16 @@ const MAX_REQUESTS_PER_WINDOW = 3;
 
 export async function POST(req) {
   try {
+    const rateLimited = rateLimitByIP(req, "auth-strict");
+    if (rateLimited) return rateLimited;
+
     const { email } = await req.json();
     if (!email || typeof email !== "string") {
       return Response.json({ error: "Email is required." }, { status: 400 });
+    }
+
+    if (!isValidEmail(email)) {
+      return Response.json({ error: "Invalid email format." }, { status: 400 });
     }
 
     const normalizedEmail = email.toLowerCase().trim();

@@ -3,9 +3,14 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { generateRefNumber } from "@/lib/ref-number";
 import { VERIFY_TOKEN_GRACE_MINUTES } from "@/lib/otp";
+import { rateLimitByIP } from "@/lib/rate-limit";
+import { isValidEmail, isValidName, isValidPassword, isValidPhone } from "@/lib/validation";
 
 export async function POST(request) {
   try {
+    const rateLimited = rateLimitByIP(request, "auth-strict");
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
     const { firstName, lastName, email, phone, password, verifyToken } = body;
 
@@ -24,9 +29,30 @@ export async function POST(request) {
       );
     }
 
-    if (password.length < 8) {
+    if (!isValidEmail(email)) {
       return NextResponse.json(
-        { error: "Password must be at least 8 characters." },
+        { error: "Invalid email format." },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidName(firstName) || (lastName && !isValidName(lastName))) {
+      return NextResponse.json(
+        { error: "Name must be 1-100 characters with no control characters." },
+        { status: 400 }
+      );
+    }
+
+    if (phone && !isValidPhone(phone)) {
+      return NextResponse.json(
+        { error: "Invalid phone number format." },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidPassword(password)) {
+      return NextResponse.json(
+        { error: "Password must be 8-128 characters." },
         { status: 400 }
       );
     }

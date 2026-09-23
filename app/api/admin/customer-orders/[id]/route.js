@@ -1,4 +1,5 @@
 import { requireAdmin, jsonResponse, errorResponse, createAuditLog } from "@/lib/admin";
+import { isTransitionAllowed } from "@/lib/order-state-machine";
 import prisma from "@/lib/prisma";
 import { syncProductStock } from "@/lib/variants";
 
@@ -55,6 +56,32 @@ export async function PATCH(request, { params }) {
     }
     if (body.fulfillmentStatus && !VALID_FULFILLMENT_STATUSES.includes(body.fulfillmentStatus)) {
       return errorResponse("Invalid fulfillmentStatus", 400);
+    }
+
+    // Enforce valid state-machine transitions
+    if (body.status && body.status !== order.status) {
+      if (!isTransitionAllowed("order", order.status, body.status)) {
+        return errorResponse(
+          `Cannot transition order from ${order.status} to ${body.status}`,
+          409
+        );
+      }
+    }
+    if (body.paymentStatus && body.paymentStatus !== order.paymentStatus) {
+      if (!isTransitionAllowed("payment", order.paymentStatus, body.paymentStatus)) {
+        return errorResponse(
+          `Cannot transition payment from ${order.paymentStatus} to ${body.paymentStatus}`,
+          409
+        );
+      }
+    }
+    if (body.fulfillmentStatus && body.fulfillmentStatus !== order.fulfillmentStatus) {
+      if (!isTransitionAllowed("fulfillment", order.fulfillmentStatus, body.fulfillmentStatus)) {
+        return errorResponse(
+          `Cannot transition fulfillment from ${order.fulfillmentStatus} to ${body.fulfillmentStatus}`,
+          409
+        );
+      }
     }
 
     const updates = {};

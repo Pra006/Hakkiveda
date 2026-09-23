@@ -58,7 +58,7 @@ export default function ProductCard({ product, compact = false }) {
         {vendor && (
           <Link
             href={`/stores/${vendor.slug}`}
-            className="inline-flex items-center gap-1.5 text-[11px] text-antique-gold font-semibold uppercase tracking-widest hover:underline w-fit"
+            className="inline-flex items-center gap-1.5 text-xs text-antique-gold font-semibold tracking-wide hover:underline w-fit"
           >
             <Icon name="verified" size={13} />
             {vendor.name}
@@ -73,17 +73,17 @@ export default function ProductCard({ product, compact = false }) {
           <p className="text-xs text-on-surface-variant line-clamp-2">{product.shortDescription}</p>
         )}
         <Rating value={product.rating} count={product.reviewCount} />
-        <div className="mt-1 flex items-end justify-between gap-2">
+        <div className="mt-1">
           <Price price={product.price} compareAt={product.compareAt} size="sm" />
-          <button
-            aria-label="Add to cart"
-            onClick={handleAdd}
-            disabled={pending}
-            className="w-9 h-9 rounded-full bg-forest-base text-antique-gold flex items-center justify-center hover:bg-forest-deep shrink-0 disabled:opacity-60"
-          >
-            <Icon name={added ? "check" : "add_shopping_cart"} size={16} />
-          </button>
         </div>
+        <button
+          onClick={handleAdd}
+          disabled={pending}
+          className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-forest-base text-antique-gold text-sm font-semibold hover:bg-forest-deep disabled:opacity-60 transition-colors"
+        >
+          <Icon name={added ? "check" : "add_shopping_cart"} size={16} />
+          {added ? "Added" : "Add to Cart"}
+        </button>
       </div>
     </article>
   );

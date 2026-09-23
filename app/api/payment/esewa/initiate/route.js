@@ -27,6 +27,6 @@ export async function POST(request) {
   } catch (err) {
     if (err instanceof Response) return err;
     console.error("[ESEWA_INITIATE_ERROR]", err);
-    return errorResponse(err?.message || "Could not initiate eSewa payment", 400);
+    return errorResponse("Could not initiate payment. Please try again.", 400);
   }
 }

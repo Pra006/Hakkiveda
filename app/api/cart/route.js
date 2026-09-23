@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { jsonResponse, errorResponse } from "@/lib/b2b";
-import { requireCustomer, getOrCreateCart, getCartPayload } from "@/lib/cart";
+import { requireCustomer, getOrCreateCart, getCartPayload, b2bMinQty } from "@/lib/cart";
 import { resolveVariant, availableStock } from "@/lib/variants";
 
 const MAX_QTY = 99;
@@ -33,6 +33,7 @@ export async function POST(req) {
       where: body.productId
         ? { id: body.productId, isActive: true }
         : { slug: body.slug, isActive: true },
+      include: { variants: { select: { id: true, b2bMinOrderQty: true } } },
     });
     if (!product) return errorResponse("Product not found", 404);
 
@@ -54,6 +55,18 @@ export async function POST(req) {
     });
 
     const nextQty = Math.min((existing?.quantity ?? 0) + quantity, stock, MAX_QTY);
+
+    // B2B minimum order quantity enforcement — checked against the final cart qty
+    if (customer._isB2B) {
+      const variantWithB2b = product.variants?.find((v) => v.id === variant?.id);
+      const minQty = b2bMinQty(product, variantWithB2b);
+      if (nextQty < minQty) {
+        return errorResponse(
+          `B2B customers must purchase at least ${minQty} units of this product.`,
+          400
+        );
+      }
+    }
 
     if (existing) {
       await prisma.customerCartItem.update({
@@ -91,8 +104,8 @@ export async function PATCH(req) {
     const item = await prisma.customerCartItem.findFirst({
       where: { id: itemId, cartId: cart.id },
       include: {
-        product: { select: { stock: true } },
-        variant: { select: { stock: true } },
+        product: { select: { stock: true, b2bMinOrderQty: true, moq: true } },
+        variant: { select: { stock: true, b2bMinOrderQty: true } },
       },
     });
     if (!item) return errorResponse("Cart item not found", 404);
@@ -103,6 +116,15 @@ export async function PATCH(req) {
     if (qty === 0) {
       await prisma.customerCartItem.delete({ where: { id: item.id } });
     } else {
+      if (customer._isB2B) {
+        const minQty = b2bMinQty(item.product, item.variant);
+        if (qty < minQty) {
+          return errorResponse(
+            `B2B customers must purchase at least ${minQty} units of this product.`,
+            400
+          );
+        }
+      }
       await prisma.customerCartItem.update({
         where: { id: item.id },
         data: { quantity: Math.min(qty, availableStock(item.product, item.variant), MAX_QTY) },

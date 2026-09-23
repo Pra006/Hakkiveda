@@ -49,10 +49,9 @@ function CheckRow({ label, count, checked, onChange }) {
   );
 }
 
-export default function ShopBrowser({ products, categories, vendors }) {
+export default function ShopBrowser({ products, categories }) {
   const [query, setQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState(new Set());
-  const [selectedVendors, setSelectedVendors] = useState(new Set());
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [minRating, setMinRating] = useState(0);
@@ -71,7 +70,6 @@ export default function ShopBrowser({ products, categories, vendors }) {
   const reset = () => {
     setQuery("");
     setSelectedCategories(new Set());
-    setSelectedVendors(new Set());
     setPriceMin("");
     setPriceMax("");
     setMinRating(0);
@@ -88,7 +86,6 @@ export default function ShopBrowser({ products, categories, vendors }) {
 
     let list = products.filter((p) => {
       if (selectedCategories.size && !selectedCategories.has(p.category)) return false;
-      if (selectedVendors.size && !selectedVendors.has(p.vendor)) return false;
       if (p.price < min || p.price > max) return false;
       if (p.rating < minRating) return false;
       if (inStock && (p.stock ?? 0) <= 0) return false;
@@ -114,7 +111,6 @@ export default function ShopBrowser({ products, categories, vendors }) {
     products,
     query,
     selectedCategories,
-    selectedVendors,
     priceMin,
     priceMax,
     minRating,
@@ -136,15 +132,6 @@ export default function ShopBrowser({ products, categories, vendors }) {
         key: `cat-${slug}`,
         label: c.name,
         remove: () => setSelectedCategories((s) => toggle(s, slug)),
-      });
-  });
-  selectedVendors.forEach((slug) => {
-    const v = vendors.find((x) => x.slug === slug);
-    if (v)
-      chips.push({
-        key: `vend-${slug}`,
-        label: v.name,
-        remove: () => setSelectedVendors((s) => toggle(s, slug)),
       });
   });
   if (priceMin !== "" || priceMax !== "")
@@ -203,18 +190,6 @@ export default function ShopBrowser({ products, categories, vendors }) {
               count={products.filter((p) => p.category === c.slug).length}
               checked={selectedCategories.has(c.slug)}
               onChange={() => onFilterChange(setSelectedCategories)(toggle(selectedCategories, c.slug))}
-            />
-          ))}
-        </FilterGroup>
-
-        <FilterGroup title="B2B Business">
-          {vendors.map((v) => (
-            <CheckRow
-              key={v.slug}
-              label={v.name}
-              count={products.filter((p) => p.vendor === v.slug).length}
-              checked={selectedVendors.has(v.slug)}
-              onChange={() => onFilterChange(setSelectedVendors)(toggle(selectedVendors, v.slug))}
             />
           ))}
         </FilterGroup>

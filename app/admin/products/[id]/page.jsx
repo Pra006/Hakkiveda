@@ -4,12 +4,17 @@ import { Suspense, use, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AdminPageHeader from "@/components/admin/ui/AdminPageHeader";
-import AdminStatCard from "@/components/admin/ui/AdminStatCard";
 import AdminStatusBadge from "@/components/admin/ui/AdminStatusBadge";
 import ProductForm from "@/components/admin/products/ProductForm";
 import VariantManager from "@/components/admin/products/VariantManager";
 import Icon from "@/components/ui/Icon";
 import { toast } from "react-toastify";
+
+const TABS = [
+  { key: "general",  label: "General",  icon: "info" },
+  { key: "variants", label: "Variants", icon: "style" },
+  { key: "pricing",  label: "Pricing",  icon: "payments" },
+];
 
 export default function EditProductPage({ params }) {
   return (
@@ -26,11 +31,11 @@ function EditProduct({ params }) {
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("general");
   const [notice, setNotice] = useState(
     searchParams.get("created") ? { type: "success", text: "Product created" } : null
   );
 
-  // Shared loader so the variant editor can refresh stock and stats after edits.
   const reload = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/products/${id}`);
@@ -63,7 +68,7 @@ function EditProduct({ params }) {
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Delete “${product.name}”?\n\nIf it appears in any order it will be deactivated instead.`)) return;
+    if (!window.confirm(`Delete "${product.name}"?\n\nIf it appears in any order it will be deactivated instead.`)) return;
     const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
     const json = await res.json();
     if (!res.ok) {
@@ -95,8 +100,6 @@ function EditProduct({ params }) {
       </div>
     );
   }
-
-  const stats = product.stats || {};
 
   return (
     <div>
@@ -135,37 +138,57 @@ function EditProduct({ params }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <AdminStatCard label="Units sold" value={stats.unitsSold ?? 0} icon="shopping_bag" accent="blue" />
-        <AdminStatCard label="Revenue" value={`Rs ${(stats.revenue ?? 0).toLocaleString()}`} icon="payments" accent="green" />
-        <AdminStatCard label="In carts" value={stats.inCarts ?? 0} icon="shopping_cart" accent="purple" />
+      {/* ── Tab Navigation ─────────────────────────────────────────────── */}
+      <div className="border-b border-slate-200 mb-6">
+        <nav className="flex gap-0 -mb-px">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              }`}
+            >
+              <Icon name={tab.icon} size={18} />
+              {tab.label}
+            </button>
+          ))}
+        </nav>
       </div>
 
-      <div className="mb-6">
+      {/* ── Tab Content ────────────────────────────────────────────────── */}
+      {activeTab === "variants" ? (
         <VariantManager productId={id} onStockChange={reload} />
-      </div>
-
-      <ProductForm
-        initial={{
-          name: product.name,
-          slug: product.slug,
-          sku: product.sku ?? "",
-          brand: product.brand ?? "",
-          description: product.description ?? "",
-          retailPrice: product.retailPrice,
-          compareAt: product.compareAt ?? "",
-          stock: product.stock,
-          moq: product.moq,
-          categoryId: product.categoryId ?? "",
-          images: product.images ?? [],
-          isActive: product.isActive,
-          isB2B: product.isB2B,
-        }}
-        hasVariants={(product.variantCount ?? 0) > 0}
-        onSubmit={handleUpdate}
-        submitLabel="Save changes"
-        busyLabel="Saving…"
-      />
+      ) : (
+        <ProductForm
+          initial={{
+            name: product.name,
+            slug: product.slug,
+            sku: product.sku ?? "",
+            brand: product.brand ?? "",
+            description: product.description ?? "",
+            retailPrice: product.retailPrice,
+            compareAt: product.compareAt ?? "",
+            stock: product.stock,
+            moq: product.moq,
+            categoryId: product.categoryId ?? "",
+            images: product.images ?? [],
+            isActive: product.isActive,
+            isB2B: product.isB2B,
+            isNewArrival: product.isNewArrival ?? false,
+            b2bMinOrderQty: product.b2bMinOrderQty ?? "",
+          }}
+          hasVariants={(product.variantCount ?? 0) > 0}
+          onSubmit={handleUpdate}
+          submitLabel="Save changes"
+          busyLabel="Saving\u2026"
+          visibleSections={
+            activeTab === "general" ? ["details", "images"] : ["pricing"]
+          }
+        />
+      )}
     </div>
   );
 }

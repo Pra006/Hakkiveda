@@ -463,7 +463,7 @@ export default function B2BApplicationPage() {
   }
 
   if (status === "unauthenticated") {
-    router.push("/auth/login?callbackUrl=/b2b/apply");
+    router.push("/auth/login");
     return null;
   }
 

@@ -6,14 +6,33 @@ import {
   MAX_ATTEMPTS,
   VERIFY_TOKEN_GRACE_MINUTES,
 } from "@/lib/otp";
+import { rateLimitByIP } from "@/lib/rate-limit";
+import { isValidOtp, isValidEmail } from "@/lib/validation";
 
 export async function POST(request) {
   try {
+    const rateLimited = rateLimitByIP(request, "otp-verify");
+    if (rateLimited) return rateLimited;
+
     const { email, otp, purpose } = await request.json();
 
     if (!email || !otp || !purpose) {
       return NextResponse.json(
         { error: "Email, OTP, and purpose are required." },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidEmail(email)) {
+      return NextResponse.json(
+        { error: "Invalid email format." },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidOtp(otp)) {
+      return NextResponse.json(
+        { error: "OTP must be exactly 6 digits." },
         { status: 400 }
       );
     }

@@ -9,13 +9,14 @@ const CartContext = createContext(null);
 const EMPTY = { items: [], count: 0, subtotal: 0, shipping: 0, tax: 0, total: 0 };
 
 export default function CartProvider({ children }) {
-  const { status } = useSession();
+  const { data, status } = useSession();
   const [cart, setCart] = useState(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(null);
 
   const signedIn = status === "authenticated";
+  const isB2B = !!data?.user?.isB2B;
 
   const request = useCallback(async (method, { body, query } = {}) => {
     setPending(true);
@@ -119,6 +120,7 @@ export default function CartProvider({ children }) {
         pending,
         error,
         signedIn,
+        isB2B,
         sessionStatus: status,
         addItem,
         setQuantity,

@@ -42,7 +42,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("[PRIVATE_UPLOAD_ERROR]", error?.message || error);
     return NextResponse.json(
-      { error: error?.message || "Upload failed" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

@@ -180,7 +180,7 @@ export default function B2BApplicationStatusPage() {
   }
 
   if (status === "unauthenticated") {
-    router.push("/auth/login?callbackUrl=/b2b/application");
+    router.push("/auth/login");
     return null;
   }
 

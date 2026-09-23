@@ -21,6 +21,7 @@ export default function ProductsPage() {
   const [sort, setSort] = useState("createdAt:desc");
   const [notice, setNotice] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [togglingFeatured, setTogglingFeatured] = useState(null);
 
   const fetchProducts = useCallback(async (page = 1) => {
     setLoading(true);
@@ -56,7 +57,7 @@ export default function ProductsPage() {
 
   async function handleDelete(row) {
     const confirmed = window.confirm(
-      `Delete “${row.name}”?\n\nIf it appears in any order it will be deactivated and hidden from the store instead of removed.`
+      `Delete "${row.name}"?\n\nIf it appears in any order it will be deactivated and hidden from the store instead of removed.`
     );
     if (!confirmed) return;
 
@@ -74,7 +75,83 @@ export default function ProductsPage() {
     }
   }
 
+  async function handleToggleFeatured(row) {
+    setTogglingFeatured(row.id);
+    try {
+      const res = await fetch(`/api/admin/products/${row.id}/featured`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isFeatured: !row.isFeatured }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to update featured status");
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === row.id
+            ? { ...p, isFeatured: json.isFeatured, featuredOrder: json.featuredOrder }
+            : p
+        )
+      );
+      setNotice({
+        type: "success",
+        text: json.isFeatured
+          ? `"${row.name}" marked as Featured`
+          : `"${row.name}" removed from Featured`,
+      });
+    } catch (err) {
+      setNotice({ type: "error", text: err.message });
+    } finally {
+      setTogglingFeatured(null);
+    }
+  }
+
+  async function handleFeaturedOrderChange(row, newOrder) {
+    const value = newOrder === "" ? null : parseInt(newOrder, 10);
+    if (value !== null && (isNaN(value) || value < 0)) return;
+
+    try {
+      const res = await fetch(`/api/admin/products/${row.id}/featured`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featuredOrder: value }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to update order");
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === row.id ? { ...p, featuredOrder: json.featuredOrder } : p
+        )
+      );
+    } catch (err) {
+      setNotice({ type: "error", text: err.message });
+    }
+  }
+
   const columns = [
+    {
+      key: "featured",
+      label: "",
+      render: (row) => (
+        <button
+          onClick={() => handleToggleFeatured(row)}
+          disabled={togglingFeatured === row.id || (!row.isActive && !row.isFeatured)}
+          className={`p-1 rounded transition-colors disabled:opacity-40 ${
+            row.isFeatured
+              ? "text-amber-500 hover:text-amber-600"
+              : "text-slate-300 hover:text-amber-400"
+          }`}
+          title={
+            !row.isActive && !row.isFeatured
+              ? "Only active products can be featured"
+              : row.isFeatured
+              ? "Remove from Featured"
+              : "Mark as Featured"
+          }
+        >
+          <Icon name={row.isFeatured ? "star" : "star_outline"} size={20} />
+        </button>
+      ),
+    },
     {
       key: "product",
       label: "Product",
@@ -88,13 +165,37 @@ export default function ProductsPage() {
             </div>
           )}
           <div>
-            <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{row.name}</p>
+            <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
+              {row.name}
+              {row.isFeatured && (
+                <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 uppercase tracking-wider">
+                  Featured
+                </span>
+              )}
+            </p>
             <p className="text-xs text-slate-500">{row.brand || row.slug}</p>
           </div>
         </Link>
       ),
     },
     { key: "sku", label: "SKU", render: (row) => row.sku || "—" },
+    {
+      key: "featuredOrder",
+      label: "Order",
+      render: (row) =>
+        row.isFeatured ? (
+          <input
+            type="number"
+            min="0"
+            value={row.featuredOrder ?? ""}
+            onChange={(e) => handleFeaturedOrderChange(row, e.target.value)}
+            placeholder="—"
+            className="w-16 px-2 py-1 text-sm border border-slate-200 rounded text-center bg-white outline-none focus:border-blue-300"
+          />
+        ) : (
+          <span className="text-slate-300">—</span>
+        ),
+    },
     {
       key: "options",
       label: "Options",
@@ -194,6 +295,9 @@ export default function ProductsPage() {
               <option value="">All status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
+              <option value="featured">Featured</option>
+              <option value="not-featured">Not Featured</option>
+              <option value="new-arrival">New Arrival</option>
               <option value="b2b">B2B</option>
             </select>
             <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={control}>

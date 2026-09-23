@@ -37,13 +37,13 @@ export default function CategoryCard({ category, variant = "default", eyebrow, d
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-b from-antique-gold/10 via-transparent to-transparent" />
 
       {eyebrow && (
-        <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-forest-deep/70 backdrop-blur border border-antique-gold/40 text-[10px] uppercase tracking-widest font-semibold text-antique-gold">
+        <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-forest-deep/70 backdrop-blur border border-antique-gold/40 text-xs uppercase tracking-wider font-semibold text-antique-gold">
           <Icon name="auto_awesome" size={12} />
           {eyebrow}
         </div>
       )}
 
-      <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-ivory-canvas/90 backdrop-blur text-[10px] uppercase tracking-widest font-bold text-forest-deep">
+      <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-ivory-canvas/90 backdrop-blur text-xs uppercase tracking-wider font-bold text-forest-deep">
         {category.productCount} items
       </div>
 

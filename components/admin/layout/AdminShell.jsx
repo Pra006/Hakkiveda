@@ -9,6 +9,8 @@ import Icon from "@/components/ui/Icon";
 const mainNav = [
   { label: "Dashboard", href: "/admin", icon: "dashboard" },
   { label: "Hero Banners", href: "/admin/hero-banners", icon: "view_carousel" },
+  { label: "Blogs", href: "/admin/blogs", icon: "article" },
+  { label: "Promotions", href: "/admin/promotions", icon: "campaign" },
 ];
 
 const customerNav = [
@@ -23,11 +25,6 @@ const ordersNav = [
 const b2bNav = [
   { label: "Overview", href: "/admin/b2b", icon: "monitoring" },
   { label: "Applications", href: "/admin/b2b/applications", icon: "description" },
-  { label: "Organizations", href: "/admin/b2b/organizations", icon: "corporate_fare" },
-  { label: "Members", href: "/admin/b2b/members", icon: "badge" },
-  { label: "RFQs", href: "/admin/b2b/rfqs", icon: "request_quote" },
-  { label: "Quotations", href: "/admin/b2b/quotations", icon: "calculate" },
-  { label: "Purchase Orders", href: "/admin/b2b/purchase-orders", icon: "assignment" },
   { label: "Orders", href: "/admin/b2b/orders", icon: "local_shipping" },
   { label: "Invoices", href: "/admin/b2b/invoices", icon: "receipt" },
   { label: "Payments", href: "/admin/b2b/payments", icon: "payments" },
@@ -40,10 +37,7 @@ const productNav = [
 
 // Supporting tools — kept out of the five main areas.
 const systemNav = [
-  { label: "Reports", href: "/admin/reports", icon: "assessment" },
-  { label: "Admins", href: "/admin/admins", icon: "admin_panel_settings" },
   { label: "Audit Logs", href: "/admin/audit-logs", icon: "history" },
-  { label: "Settings", href: "/admin/settings", icon: "settings" },
 ];
 
 function NavItem({ item, pathname, onClick }) {
@@ -162,7 +156,7 @@ export default function AdminShell({ admin, children }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-semibold text-white truncate">{admin.name}</div>
-            <div className="text-[10px] text-amber-400 uppercase tracking-wider">{admin.role.replace(/_/g, " ")}</div>
+            <div className="text-[10px] text-amber-400 uppercase tracking-wider">Administrator</div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}

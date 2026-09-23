@@ -40,6 +40,9 @@ export async function GET(request) {
     if (status === "active") where.isActive = true;
     else if (status === "inactive") where.isActive = false;
     else if (status === "b2b") where.isB2B = true;
+    else if (status === "featured") where.isFeatured = true;
+    else if (status === "not-featured") where.isFeatured = false;
+    else if (status === "new-arrival") where.isNewArrival = true;
 
     if (categoryId) where.categoryId = categoryId;
 

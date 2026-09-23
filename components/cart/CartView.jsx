@@ -16,7 +16,10 @@ function vendorForItem(item) {
   return mock ? getVendor(mock.vendor) : null;
 }
 
-function CartLine({ item, onQuantity, onRemove, pending }) {
+function CartLine({ item, onQuantity, onRemove, pending, isB2B }) {
+  const minQty = isB2B ? (item.b2bMinOrderQty || 1) : 1;
+  const belowMin = isB2B && item.quantity < minQty;
+
   return (
     <li className="p-4 flex gap-4">
       <Link href={`/products/${item.product.slug}`} className="shrink-0">
@@ -34,13 +37,23 @@ function CartLine({ item, onQuantity, onRemove, pending }) {
         <div className="text-xs text-on-surface-variant mt-1">
           {formatNPR(item.unitPrice)} each · {item.availableStock} in stock
         </div>
+        {isB2B && minQty > 1 && (
+          <div className="text-xs text-amber-700 mt-1 font-semibold">
+            Minimum B2B quantity: {minQty} units
+          </div>
+        )}
+        {belowMin && (
+          <div className="text-xs text-terracotta mt-1 font-semibold">
+            B2B customers must purchase at least {minQty} units of this product.
+          </div>
+        )}
         <div className="mt-2 flex items-center justify-between gap-4 flex-wrap">
-          <div className="inline-flex items-center border border-outline-variant rounded overflow-hidden">
+          <div className={`inline-flex items-center border rounded overflow-hidden ${belowMin ? "border-terracotta" : "border-outline-variant"}`}>
             <button
               className="w-8 h-8 hover:bg-forest-base/5 disabled:opacity-50"
               aria-label="Decrease quantity"
-              disabled={pending || item.quantity <= 1}
-              onClick={() => onQuantity(item.id, item.quantity - 1)}
+              disabled={pending || item.quantity <= minQty}
+              onClick={() => onQuantity(item.id, Math.max(minQty, item.quantity - 1))}
             >
               <Icon name="remove" size={14} />
             </button>
@@ -68,7 +81,7 @@ function CartLine({ item, onQuantity, onRemove, pending }) {
   );
 }
 
-function VendorGroup({ vendor, items, onQuantity, onRemove, pending }) {
+function VendorGroup({ vendor, items, onQuantity, onRemove, pending, isB2B }) {
   const subtotal = items.reduce((s, i) => s + i.lineTotal, 0);
   return (
     <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl overflow-hidden">
@@ -98,7 +111,7 @@ function VendorGroup({ vendor, items, onQuantity, onRemove, pending }) {
 
       <ul className="divide-y divide-outline-variant/60">
         {items.map((it) => (
-          <CartLine key={it.id} item={it} onQuantity={onQuantity} onRemove={onRemove} pending={pending} />
+          <CartLine key={it.id} item={it} onQuantity={onQuantity} onRemove={onRemove} pending={pending} isB2B={isB2B} />
         ))}
       </ul>
     </div>
@@ -128,10 +141,13 @@ export default function CartView() {
     pending,
     error,
     signedIn,
+    isB2B,
     setQuantity,
     removeItem,
     clearCart,
   } = useCart();
+
+  const hasB2BViolation = isB2B && items.some((i) => i.quantity < (i.b2bMinOrderQty || 1));
 
   const byVendor = new Map();
   items.forEach((item) => {
@@ -206,6 +222,7 @@ export default function CartView() {
                 onQuantity={setQuantity}
                 onRemove={removeItem}
                 pending={pending}
+                isB2B={isB2B}
               />
             ))}
             <button
@@ -239,7 +256,13 @@ export default function CartView() {
               </div>
             </dl>
 
-            <Button as={Link} href="/checkout" size="lg" className="w-full mt-6">
+            {hasB2BViolation && (
+              <p className="mt-4 text-xs text-terracotta font-semibold flex items-center gap-1.5">
+                <Icon name="warning" size={14} />
+                Some items are below the B2B minimum order quantity. Please update quantities before checkout.
+              </p>
+            )}
+            <Button as={hasB2BViolation ? "button" : Link} href={hasB2BViolation ? undefined : "/checkout"} size="lg" className="w-full mt-6" disabled={hasB2BViolation}>
               Proceed to Checkout
               <Icon name="arrow_forward" size={18} className="text-antique-gold" />
             </Button>

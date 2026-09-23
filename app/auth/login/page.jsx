@@ -28,7 +28,9 @@ export default function LoginPage() {
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const rawCallback = searchParams.get("callbackUrl") || "/";
+  // B2B users should land on the normal storefront, not the B2B portal
+  const callbackUrl = rawCallback.startsWith("/b2b") ? "/" : rawCallback;
   const registered = searchParams.get("registered");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import { formatNPR } from "@/lib/utils";
@@ -8,14 +9,29 @@ import { useCart } from "@/components/providers/CartProvider";
 import { toast } from "react-toastify";
 
 export default function VariantAndCart({ product }) {
+  const { data: session } = useSession();
+  const isB2B = !!session?.user?.isB2B;
+
   // Default to the first option that can actually be bought.
   const [variantId, setVariantId] = useState(
     () => (product.variants?.find((v) => v.stock > 0) || product.variants?.[0])?.id ?? null
   );
-  const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
   const variant = product.variants?.find((v) => v.id === variantId);
   const outOfStock = !variant || variant.stock <= 0;
+
+  // B2B min order qty: variant-level overrides product-level
+  const b2bMin = isB2B
+    ? (variant?.b2bMinOrderQty ?? product.b2bMinOrderQty ?? product.moq ?? 1)
+    : 1;
+  const minQty = isB2B ? b2bMin : 1;
+
+  const [qty, setQty] = useState(minQty);
+  const [added, setAdded] = useState(false);
+
+  // Reset qty to B2B minimum when session loads and user is B2B
+  useEffect(() => {
+    setQty((q) => Math.max(minQty, q));
+  }, [minQty]);
 
   const router = useRouter();
   const { addItem, pending, signedIn, sessionStatus, error } = useCart();
@@ -70,7 +86,11 @@ export default function VariantAndCart({ product }) {
             {product.variants.map((v) => (
               <button
                 key={v.id}
-                onClick={() => setVariantId(v.id)}
+                onClick={() => {
+                  setVariantId(v.id);
+                  const newMin = isB2B ? (v.b2bMinOrderQty ?? product.b2bMinOrderQty ?? product.moq ?? 1) : 1;
+                  setQty((q) => Math.max(newMin, q));
+                }}
                 disabled={v.stock <= 0}
                 className={`px-4 py-2 rounded border text-sm font-semibold disabled:opacity-40 disabled:line-through ${
                   variantId === v.id
@@ -85,12 +105,20 @@ export default function VariantAndCart({ product }) {
         </div>
       )}
 
+      {isB2B && minQty > 1 && (
+        <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+          <Icon name="business" size={16} />
+          <span>B2B Minimum Order: <strong>{minQty} units</strong></span>
+        </div>
+      )}
+
       <div className="flex items-center gap-4">
         <div className="inline-flex items-center border border-outline-variant rounded overflow-hidden">
           <button
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
+            onClick={() => setQty((q) => Math.max(minQty, q - 1))}
             className="w-10 h-10 text-forest-deep hover:bg-forest-base/5"
             aria-label="Decrease"
+            disabled={qty <= minQty}
           >
             <Icon name="remove" size={16} />
           </button>

@@ -6,7 +6,7 @@ const groups = [
     title: "Hakkiveda",
     links: [
       ["Our Story", "/about"],
-      ["Journal", "/journal"],
+      ["Blogs", "/blogs"],
       ["Sustainability", "/sustainability"],
       ["Careers", "/careers"],
     ],

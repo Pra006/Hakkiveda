@@ -44,6 +44,6 @@ export async function POST(request) {
   } catch (err) {
     if (err instanceof Response) return err;
     console.error("[PRODUCT_IMAGE_UPLOAD_ERROR]", err);
-    return errorResponse(err?.message || "Upload failed", 500);
+    return errorResponse("Internal server error", 500);
   }
 }

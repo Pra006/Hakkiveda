@@ -10,7 +10,7 @@ const nav = [
   { label: "Shop All", href: "/shop" },
   { label: "Collections", href: "/categories" },
   { label: "Stores", href: "/stores" },
-  { label: "Journal", href: "/journal" },
+  { label: "Blog", href: "/blogs" },
 ];
 
 export default function Header() {
@@ -38,7 +38,7 @@ export default function Header() {
                 <span className="font-headline text-[22px] font-semibold text-forest-deep tracking-tight group-hover:text-forest-base">
                   Hakkiveda
                 </span>
-                <span className="text-[10px] text-antique-gold tracking-widest uppercase mt-1 font-bold">
+                <span className="text-xs text-antique-gold tracking-wider mt-1 font-bold">
                   Nepal Marketplace
                 </span>
               </div>
@@ -68,12 +68,14 @@ export default function Header() {
               <Icon name="search" size={22} />
             </button>
 
-            <Link
-              href="/b2b/apply"
-              className="hidden md:inline-flex text-xs font-semibold uppercase tracking-widest text-forest-deep hover:text-antique-gold px-3 py-2 border border-forest-base/20 rounded"
-            >
-              B2B Exp/Imp
-            </Link>
+            {!user?.isB2B && (
+              <Link
+                href="/b2b/apply"
+                className="hidden md:inline-flex text-xs font-semibold uppercase tracking-widest text-forest-deep hover:text-antique-gold px-3 py-2 border border-forest-base/20 rounded"
+              >
+                B2B Exp/Imp
+              </Link>
+            )}
 
             {/* AUTH */}
             {status === "loading" ? (
@@ -180,7 +182,7 @@ export default function Header() {
                 </span>
               )}
               <span className="hidden md:flex flex-col text-left leading-tight">
-                <span className="text-[10px] uppercase text-earth-sand tracking-wider font-semibold">Bag</span>
+                <span className="text-xs uppercase text-earth-sand tracking-wider font-semibold">Bag</span>
                 <span className="text-xs font-semibold text-ivory-canvas">
                   {cartCount > 0 ? `${cartCount} item${cartCount === 1 ? "" : "s"}` : "Cart"}
                 </span>
@@ -286,13 +288,15 @@ export default function Header() {
                   My Account
                 </Link>
               )}
-              <Link
-                href="/b2b/apply"
-                onClick={() => setMenuOpen(false)}
-                className="px-3 py-3 rounded-lg text-forest-deep hover:bg-forest-base/5"
-              >
-                B2B Exp/Imp
-              </Link>
+              {!user?.isB2B && (
+                <Link
+                  href="/b2b/apply"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-3 py-3 rounded-lg text-forest-deep hover:bg-forest-base/5"
+                >
+                  B2B Exp/Imp
+                </Link>
+              )}
               {user && (
                 <button
                   onClick={() => {

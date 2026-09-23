@@ -14,7 +14,7 @@ export default function Badge({ children, tone = "gold", className = "" }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-widest",
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-semibold uppercase tracking-wider",
         tones[tone],
         className
       )}

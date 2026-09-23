@@ -31,7 +31,7 @@ export async function GET(request, { params }) {
     return jsonResponse(rfq);
   } catch (err) {
     if (err instanceof Response) return err;
-    return errorResponse(err.message, 500);
+    return errorResponse("Internal server error", 500);
   }
 }
 
@@ -88,6 +88,6 @@ export async function PATCH(request, { params }) {
     return jsonResponse(rfq);
   } catch (err) {
     if (err instanceof Response) return err;
-    return errorResponse(err.message, 500);
+    return errorResponse("Internal server error", 500);
   }
 }

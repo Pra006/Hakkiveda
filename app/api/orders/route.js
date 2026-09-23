@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { jsonResponse, errorResponse } from "@/lib/b2b";
-import { requireCustomer, getOrCreateCart, computeTotals } from "@/lib/cart";
+import { requireCustomer, getOrCreateCart, computeTotals, b2bMinQty } from "@/lib/cart";
 import { generateNumber } from "@/lib/ref-number";
 import { effectivePrice, availableStock, syncProductStock } from "@/lib/variants";
 
@@ -102,6 +102,22 @@ export async function POST(req) {
           .join(", ")}`,
         409
       );
+    }
+
+    // B2B minimum order quantity enforcement at checkout
+    if (customer._isB2B) {
+      const belowMin = cartItems.filter((i) => {
+        const minQty = b2bMinQty(i.product, i.variant);
+        return i.quantity < minQty;
+      });
+      if (belowMin.length) {
+        return errorResponse(
+          `B2B minimum quantity not met: ${belowMin
+            .map((i) => `${label(i)} requires at least ${b2bMinQty(i.product, i.variant)} units`)
+            .join(", ")}`,
+          400
+        );
+      }
     }
 
     // ── Money ──

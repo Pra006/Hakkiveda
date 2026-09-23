@@ -5,25 +5,31 @@ import ProductCard from "@/components/storefront/ProductCard";
 import CategoryCard from "@/components/storefront/CategoryCard";
 import VendorCard from "@/components/storefront/VendorCard";
 import TrustStrip from "@/components/storefront/TrustStrip";
-import FlashCountdown from "@/components/storefront/FlashCountdown";
 import HeroCarousel from "@/components/storefront/HeroCarousel";
 import Icon from "@/components/ui/Icon";
+
+import BeforeAfterSection from "@/components/storefront/BeforeAfterSection";
+import SaleBanner from "@/components/storefront/SaleBanner";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
+import { listStoreCategories, listFeaturedProducts, listNewArrivalProducts, getActivePromotion } from "@/lib/catalog";
 import {
-  categories,
   vendors,
-  products,
-  featuredProducts,
   trendingProducts,
-  flashSaleEndsAt,
 } from "@/lib/data";
 
-export default function HomePage() {
-  const featured = featuredProducts();
+// Categories and featured products are admin-managed — always read from the DB.
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const [categories, featured, newArrivals, activePromotion] = await Promise.all([
+    listStoreCategories(),
+    listFeaturedProducts(),
+    listNewArrivalProducts(),
+    getActivePromotion(),
+  ]);
   const trending = trendingProducts();
-  const newArrivals = products.slice(0, 6);
-  const flashItems = products.slice(2, 6);
+
 
   return (
     <StorefrontShell>
@@ -41,63 +47,55 @@ export default function HomePage() {
           action={
             <Link
               href="/categories"
-              className="text-sm font-semibold text-forest-deep hover:text-antique-gold inline-flex items-center gap-1"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-forest-base/20 text-sm font-semibold text-forest-deep hover:bg-forest-base/5 hover:border-antique-gold/40 transition-colors"
             >
               View all <Icon name="arrow_forward" size={16} />
             </Link>
           }
         />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {categories.slice(0, 8).map((c) => (
-            <CategoryCard key={c.slug} category={c} />
-          ))}
-        </div>
-      </Section>
-
-      {/* FLASH SALE */}
-      <Section className="py-8">
-        <div className="rounded-2xl bg-gradient-to-br from-forest-deep to-forest-base text-ivory-canvas p-8 lg:p-10 border border-antique-gold/30 shadow-lg">
-          <div className="flex flex-wrap items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Icon name="local_fire_department" size={20} className="text-terracotta" />
-                <Badge tone="gold">Flash Sale</Badge>
-              </div>
-              <h2 className="font-headline text-3xl sm:text-4xl leading-tight">
-                Harvest Sale — up to 40% off.
-              </h2>
-              <p className="text-sm text-earth-sand/80 mt-2 max-w-xl">
-                Seasonal drops from partner cooperatives. Ends soon.
-              </p>
-            </div>
-            <FlashCountdown endsAt={flashSaleEndsAt} />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-            {flashItems.map((p) => (
-              <ProductCard key={p.id} product={p} compact />
+        {categories.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {categories.slice(0, 8).map((c) => (
+              <CategoryCard key={c.slug} category={c} />
             ))}
           </div>
-        </div>
+        ) : (
+          <p className="text-center text-on-surface-variant py-12">
+            Categories coming soon — check back shortly!
+          </p>
+        )}
       </Section>
 
-      {/* FEATURED */}
-      <Section className="py-16">
-        <SectionHeader
-          eyebrow="Featured"
-          title="Signature drops of the season."
-          action={
-            <Link href="/shop" className="text-sm font-semibold text-forest-deep hover:text-antique-gold inline-flex items-center gap-1">
-              Shop all <Icon name="arrow_forward" size={16} />
-            </Link>
-          }
-        />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          {featured.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      </Section>
+      {/* BEFORE & AFTER RESULTS */}
+      <BeforeAfterSection />
 
+      {/* FEATURED — only shown when admin has marked products as featured */}
+      {featured.length > 0 && (
+        <Section className="py-16">
+          <SectionHeader
+            eyebrow="Featured"
+            title="Signature drops of the season."
+            action={
+              <Link href="/shop" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-forest-base/20 text-sm font-semibold text-forest-deep hover:bg-forest-base/5 hover:border-antique-gold/40 transition-colors">
+                Shop all <Icon name="arrow_forward" size={16} />
+              </Link>
+            }
+          />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            {featured.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+
+      {/* SALE BANNER — active limited-time promotion */}
+      {activePromotion && (
+        <Section className="py-16">
+          <SaleBanner promotion={activePromotion} />
+        </Section>
+      )}
       {/* VENDORS */}
       <Section className="py-16 bg-surface-container-low -mx-6 lg:-mx-12 px-6 lg:px-12 rounded-none">
         <div className="max-w-7xl mx-auto">
@@ -114,15 +112,17 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* NEW ARRIVALS */}
-      <Section className="py-16">
-        <SectionHeader eyebrow="New Arrivals" title="Fresh from the workshops." />
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {newArrivals.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      </Section>
+      {/* NEW ARRIVALS — only shown when admin has marked products as new arrivals */}
+      {newArrivals.length > 0 && (
+        <Section className="py-16">
+          <SectionHeader eyebrow="New Arrivals" title="Fresh from the workshops." />
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            {newArrivals.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* PROMO BANNER */}
       <Section className="py-8">

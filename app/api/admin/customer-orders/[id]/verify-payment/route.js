@@ -63,6 +63,6 @@ export async function POST(request, { params }) {
   } catch (err) {
     if (err instanceof Response) return err;
     console.error("[ADMIN_ESEWA_VERIFY_ERROR]", err);
-    return errorResponse(err?.message || "Could not verify payment", 500);
+    return errorResponse("Internal server error", 500);
   }
 }

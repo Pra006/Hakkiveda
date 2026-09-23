@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { toast } from "react-toastify";
 
@@ -33,13 +33,15 @@ export const emptyProduct = {
   images: [],
   isActive: true,
   isB2B: false,
+  isNewArrival: false,
+  b2bMinOrderQty: "",
 };
 
 /**
  * Create/edit form for a Product. `onSubmit` receives the payload and should
  * throw an Error with a readable message to surface a failure.
  */
-export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel, hasVariants = false }) {
+const ProductForm = forwardRef(function ProductForm({ initial, onSubmit, submitLabel, busyLabel, hasVariants = false, visibleSections, validateSections, hideSubmit = false }, ref) {
   const [form, setForm] = useState({ ...emptyProduct, ...initial });
   const [categories, setCategories] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -47,6 +49,15 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [slugEdited, setSlugEdited] = useState(Boolean(initial?.slug));
+
+  // Expose submit trigger to parent via ref
+  useImperativeHandle(ref, () => ({
+    submit: () => handleSubmitProgrammatic(),
+    getFormData: () => form,
+  }));
+
+  // When visibleSections is provided, hide sections not in the list (CSS hidden keeps state)
+  const sectionClass = (name) => (!visibleSections || visibleSections.includes(name)) ? "" : "hidden";
 
   useEffect(() => {
     fetch("/api/admin/categories")
@@ -113,21 +124,67 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
     return Math.round(((compareAt - price) / compareAt) * 100);
   }, [form.retailPrice, form.compareAt]);
 
-  // Client-side mirror of lib/products.js so mistakes surface before a round trip.
+  // Client-side validation — when validateSections is set, only check those sections.
   function clientErrors() {
     const errs = [];
-    if (!form.name.trim()) errs.push("Product name is required");
-    if (!form.slug.trim()) errs.push("URL slug is required");
-    const price = Number(form.retailPrice);
-    if (!form.retailPrice || Number.isNaN(price) || price <= 0) errs.push("Retail price must be greater than 0");
-    if (form.compareAt !== "" && form.compareAt != null) {
-      const compareAt = Number(form.compareAt);
-      if (Number.isNaN(compareAt) || compareAt <= 0) errs.push("Compare-at price must be a positive number");
-      else if (compareAt <= price) errs.push("Compare-at price must be higher than the retail price");
+    const vs = validateSections;
+    const checkDetails = !vs || vs.includes("details");
+    const checkPricing = !vs || vs.includes("pricing");
+
+    if (checkDetails) {
+      if (!form.name.trim()) errs.push("Product name is required");
+      if (!form.slug.trim()) errs.push("URL slug is required");
     }
-    if (Number(form.stock) < 0 || !Number.isInteger(Number(form.stock))) errs.push("Stock must be a whole number of 0 or more");
-    if (Number(form.moq) < 1 || !Number.isInteger(Number(form.moq))) errs.push("Minimum order quantity must be at least 1");
+    if (checkPricing) {
+      const price = Number(form.retailPrice);
+      if (!form.retailPrice || Number.isNaN(price) || price <= 0) errs.push("Retail price must be greater than 0");
+      if (form.compareAt !== "" && form.compareAt != null) {
+        const compareAt = Number(form.compareAt);
+        if (Number.isNaN(compareAt) || compareAt <= 0) errs.push("Compare-at price must be a positive number");
+        else if (compareAt <= price) errs.push("Compare-at price must be higher than the retail price");
+      }
+      if (Number(form.stock) < 0 || !Number.isInteger(Number(form.stock))) errs.push("Stock must be a whole number of 0 or more");
+      if (Number(form.moq) < 1 || !Number.isInteger(Number(form.moq))) errs.push("Minimum order quantity must be at least 1");
+    }
     return errs;
+  }
+
+  async function handleSubmitProgrammatic() {
+    const errs = clientErrors();
+    if (errs.length) {
+      setError(errs.join(". "));
+      toast.error("Please fix the form errors");
+      return false;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const price = Number(form.retailPrice);
+      await onSubmit({
+        name: form.name.trim(),
+        slug: form.slug.trim(),
+        sku: form.sku.trim() || null,
+        brand: form.brand.trim() || null,
+        description: form.description.trim() || null,
+        retailPrice: price > 0 ? price : 1,
+        compareAt: form.compareAt === "" || form.compareAt == null ? null : Number(form.compareAt),
+        stock: Number(form.stock),
+        moq: Number(form.moq),
+        b2bMinOrderQty: form.b2bMinOrderQty === "" || form.b2bMinOrderQty == null ? null : Number(form.b2bMinOrderQty),
+        categoryId: form.categoryId || null,
+        images: form.images,
+        isActive: form.isActive,
+        isB2B: form.isB2B,
+        isNewArrival: form.isNewArrival,
+      });
+      return true;
+    } catch (err) {
+      setError(err.message || "Something went wrong");
+      toast.error(err.message || "Something went wrong");
+      return false;
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -151,10 +208,12 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
         compareAt: form.compareAt === "" || form.compareAt == null ? null : Number(form.compareAt),
         stock: Number(form.stock),
         moq: Number(form.moq),
+        b2bMinOrderQty: form.b2bMinOrderQty === "" || form.b2bMinOrderQty == null ? null : Number(form.b2bMinOrderQty),
         categoryId: form.categoryId || null,
         images: form.images,
         isActive: form.isActive,
         isB2B: form.isB2B,
+        isNewArrival: form.isNewArrival,
       });
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -174,7 +233,7 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
       )}
 
       {/* Basics */}
-      <section className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+      <section className={`bg-white rounded-xl border border-slate-200 p-6 space-y-4 ${sectionClass("details")}`}>
         <h2 className="font-semibold text-slate-900">Product details</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Name" required>
@@ -216,7 +275,7 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
       </section>
 
       {/* Pricing & stock */}
-      <section className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+      <section className={`bg-white rounded-xl border border-slate-200 p-6 space-y-4 ${sectionClass("pricing")}`}>
         <h2 className="font-semibold text-slate-900">Pricing &amp; inventory</h2>
         {hasVariants && (
           <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
@@ -244,6 +303,9 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
           <Field label="Min. order qty">
             <input type="number" min="1" step="1" className={input} value={form.moq} onChange={(e) => update("moq", e.target.value)} />
           </Field>
+          <Field label="B2B min. order qty" hint="Minimum units a B2B customer must purchase. Leave blank to use the regular minimum.">
+            <input type="number" min="1" step="1" className={input} value={form.b2bMinOrderQty ?? ""} onChange={(e) => update("b2bMinOrderQty", e.target.value)} placeholder="e.g. 30" />
+          </Field>
         </div>
         <div className="flex flex-wrap items-center gap-6 pt-1">
           <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
@@ -254,11 +316,15 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
             <input type="checkbox" checked={form.isB2B} onChange={(e) => update("isB2B", e.target.checked)} />
             Available to B2B buyers
           </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="checkbox" checked={form.isNewArrival} onChange={(e) => update("isNewArrival", e.target.checked)} />
+            Show in New Arrivals
+          </label>
         </div>
       </section>
 
       {/* Images */}
-      <section className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+      <section className={`bg-white rounded-xl border border-slate-200 p-6 space-y-4 ${sectionClass("images")}`}>
         <h2 className="font-semibold text-slate-900">Images</h2>
         <div>
           <input
@@ -312,15 +378,20 @@ export default function ProductForm({ initial, onSubmit, submitLabel, busyLabel,
         )}
       </section>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
-        >
-          {saving ? busyLabel : submitLabel}
-        </button>
-      </div>
+      {!hideSubmit && (
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
+          >
+            {saving ? busyLabel : submitLabel}
+          </button>
+        </div>
+      )}
     </form>
   );
 }
+);
+
+export default ProductForm;

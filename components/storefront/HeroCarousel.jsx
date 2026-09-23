@@ -121,7 +121,7 @@ export default function HeroCarousel() {
                       {s.badgeIcon && (
                         <Icon name={s.badgeIcon} size={16} className="text-antique-gold" />
                       )}
-                      <span className="text-[11px] uppercase tracking-widest font-semibold text-earth-sand">
+                      <span className="text-xs uppercase tracking-widest font-semibold text-earth-sand">
                         {s.badgeLabel}
                       </span>
                     </div>
@@ -217,7 +217,7 @@ export default function HeroCarousel() {
 
       {/* Slide counter */}
       {total > 1 && (
-        <div className="absolute top-6 right-6 z-20 text-[11px] font-semibold uppercase tracking-widest text-earth-sand/80 bg-forest-deep/50 backdrop-blur px-3 py-1.5 rounded-full border border-antique-gold/20">
+        <div className="absolute top-6 right-6 z-20 text-xs font-semibold uppercase tracking-widest text-earth-sand/80 bg-forest-deep/50 backdrop-blur px-3 py-1.5 rounded-full border border-antique-gold/20">
           {String(index + 1).padStart(2, "0")}{" "}
           <span className="text-antique-gold/70">/</span>{" "}
           {String(total).padStart(2, "0")}

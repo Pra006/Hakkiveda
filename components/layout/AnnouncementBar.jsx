@@ -6,7 +6,7 @@ export default function AnnouncementBar() {
   const [open, setOpen] = useState(true);
   if (!open) return null;
   return (
-    <div className="relative w-full bg-forest-base text-ivory-canvas px-4 py-2.5 text-center text-[11px] font-semibold tracking-widest uppercase z-50 shadow-sm">
+    <div className="relative w-full bg-forest-base text-ivory-canvas px-4 py-2.5 text-center text-xs font-semibold tracking-widest uppercase z-50 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         <div className="w-6 hidden md:block" />
         <div className="flex-1 flex flex-wrap items-center justify-center gap-2">

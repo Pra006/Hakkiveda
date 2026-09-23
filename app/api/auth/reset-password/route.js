@@ -1,16 +1,25 @@
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
+import { rateLimitByIP } from "@/lib/rate-limit";
+import { isValidEmail, isValidPassword } from "@/lib/validation";
 
 export async function POST(req) {
   try {
+    const rateLimited = rateLimitByIP(req, "auth-strict");
+    if (rateLimited) return rateLimited;
+
     const { token, email, password } = await req.json();
 
     if (!token || !email || !password) {
       return Response.json({ error: "All fields are required." }, { status: 400 });
     }
 
-    if (typeof password !== "string" || password.length < 8) {
-      return Response.json({ error: "Password must be at least 8 characters." }, { status: 400 });
+    if (!isValidEmail(email)) {
+      return Response.json({ error: "Invalid email format." }, { status: 400 });
+    }
+
+    if (!isValidPassword(password)) {
+      return Response.json({ error: "Password must be 8-128 characters." }, { status: 400 });
     }
 
     const normalizedEmail = email.toLowerCase().trim();

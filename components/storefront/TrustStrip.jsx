@@ -11,7 +11,7 @@ const items = [
 export default function TrustStrip() {
   return (
     <section className="w-full bg-surface-container-low border-y border-forest-base/10">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-7">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-10">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {items.map((it) => (
             <div key={it.title} className="flex items-center gap-3">
@@ -19,7 +19,7 @@ export default function TrustStrip() {
                 <Icon name={it.icon} size={22} />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-forest-deep leading-tight">{it.title}</h4>
+                <h3 className="text-sm font-bold text-forest-deep leading-tight">{it.title}</h3>
                 <p className="text-xs text-on-surface-variant mt-0.5">{it.sub}</p>
               </div>
             </div>

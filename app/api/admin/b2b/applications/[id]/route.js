@@ -46,6 +46,15 @@ export async function PATCH(request, { params }) {
     });
     if (!app) return errorResponse("Application not found", 404);
 
+    // Save admin notes
+    if (body.action === "save_notes") {
+      const updated = await prisma.b2BApplication.update({
+        where: { id },
+        data: { internalNotes: body.adminNotes || null },
+      });
+      return jsonResponse(updated);
+    }
+
     // Handle verification updates
     if (body.action === "verify_identity") {
       const status = body.verificationStatus;

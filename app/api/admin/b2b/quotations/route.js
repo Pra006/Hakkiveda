@@ -44,6 +44,6 @@ export async function GET(request) {
 
     return paginatedResponse(quotations, total, page, limit);
   } catch (err) {
-    return errorResponse(err.message, 500);
+    return errorResponse("Internal server error", 500);
   }
 }
