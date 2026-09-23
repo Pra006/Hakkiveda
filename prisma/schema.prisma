@@ -33,15 +33,9 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_POSTGRES_URL")
+  
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ENUMS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// ─── Customer Enums ─────────────────────────────────────────────────────────
 
 enum CustomerOrderStatus {
   PENDING
