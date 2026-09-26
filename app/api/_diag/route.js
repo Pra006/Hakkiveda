@@ -1,4 +1,4 @@
-// TEMPORARY diagnostic endpoint. Remove before going live.
+// TEMPORARY diagnostic endpoint. Remove before going live
 // Hit: GET /api/_diag?key=<DIAG_KEY value from env>
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
