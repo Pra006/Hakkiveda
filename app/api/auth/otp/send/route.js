@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { generateOtp, hashOtp, OTP_EXPIRY_MINUTES } from "@/lib/otp";
 import { sendOtpEmail } from "@/lib/brevo";
-import { checkRateLimit } from "@/lib/rate-limit";
 import { isValidEmail } from "@/lib/validation";
 
 export async function POST(request) {
@@ -32,33 +31,7 @@ export async function POST(request) {
 
     const emailLower = email.toLowerCase().trim();
 
-    const rl = checkRateLimit(`otp:${emailLower}`, {
-      windowMs: 60_000,
-      maxRequests: 1,
-    });
-    if (!rl.allowed) {
-      return NextResponse.json(
-        {
-          error: "Please wait before requesting another code.",
-          retryAfterSeconds: rl.retryAfterSeconds,
-        },
-        { status: 429 }
-      );
-    }
 
-    const rlBurst = checkRateLimit(`otp-burst:${emailLower}`, {
-      windowMs: 15 * 60_000,
-      maxRequests: 5,
-    });
-    if (!rlBurst.allowed) {
-      return NextResponse.json(
-        {
-          error: "Too many requests. Please try again later.",
-          retryAfterSeconds: rlBurst.retryAfterSeconds,
-        },
-        { status: 429 }
-      );
-    }
 
     const existing = await prisma.user.findUnique({
       where: { email: emailLower },

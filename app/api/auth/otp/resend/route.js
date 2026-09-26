@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { generateOtp, hashOtp, OTP_EXPIRY_MINUTES } from "@/lib/otp";
 import { sendOtpEmail } from "@/lib/brevo";
-import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request) {
   try {
@@ -24,33 +23,7 @@ export async function POST(request) {
 
     const emailLower = email.toLowerCase().trim();
 
-    const rl = checkRateLimit(`otp:${emailLower}`, {
-      windowMs: 60_000,
-      maxRequests: 1,
-    });
-    if (!rl.allowed) {
-      return NextResponse.json(
-        {
-          error: `Please wait ${rl.retryAfterSeconds} seconds before resending.`,
-          retryAfterSeconds: rl.retryAfterSeconds,
-        },
-        { status: 429 }
-      );
-    }
 
-    const rlBurst = checkRateLimit(`otp-burst:${emailLower}`, {
-      windowMs: 15 * 60_000,
-      maxRequests: 5,
-    });
-    if (!rlBurst.allowed) {
-      return NextResponse.json(
-        {
-          error: "Too many requests. Please try again later.",
-          retryAfterSeconds: rlBurst.retryAfterSeconds,
-        },
-        { status: 429 }
-      );
-    }
 
     await prisma.otp.deleteMany({
       where: { email: emailLower, purpose, verified: false },
