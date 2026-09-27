@@ -202,17 +202,6 @@ export default function OrderDetailPage() {
     await patch(payload);
   };
 
-  const saveTracking = (e) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    patch({
-      shippingMethod: f.get("shippingMethod") || null,
-      courier: f.get("courier") || null,
-      trackingNumber: f.get("trackingNumber") || null,
-      estimatedDeliveryDate: f.get("estimatedDeliveryDate") || null,
-    });
-  };
-
   // ─── Loading / empty ──────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -381,38 +370,6 @@ export default function OrderDetailPage() {
             </p>
           </div>
         )}
-      </div>
-
-      {/* ── Delivery & Tracking ────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h3 className="font-semibold text-slate-900 mb-4">Delivery &amp; Tracking</h3>
-        <form onSubmit={saveTracking} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Shipping method</label>
-            <input name="shippingMethod" defaultValue={order.shippingMethod || ""} className="form-input w-full" />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Courier</label>
-            <input name="courier" defaultValue={order.courier || ""} className="form-input w-full" />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Tracking number</label>
-            <input name="trackingNumber" defaultValue={order.trackingNumber || ""} className="form-input w-full" />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Estimated delivery</label>
-            <input type="date" name="estimatedDeliveryDate" defaultValue={order.estimatedDeliveryDate?.slice(0, 10) || ""} className="form-input w-full" />
-          </div>
-          <div className="sm:col-span-2 text-xs text-slate-500 space-y-0.5">
-            <p>Shipped at: {order.shippedAt ? new Date(order.shippedAt).toLocaleString() : "—"}</p>
-            <p>Delivered at: {order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : "—"}</p>
-          </div>
-          <div className="sm:col-span-2">
-            <button type="submit" disabled={updating} className="btn btn-primary text-sm disabled:opacity-50">
-              {updating ? "Saving…" : "Save tracking"}
-            </button>
-          </div>
-        </form>
       </div>
 
       {/* ── Payments ───────────────────────────────────────────────────────── */}

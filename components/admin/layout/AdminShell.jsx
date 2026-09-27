@@ -31,8 +31,8 @@ const b2bNav = [
 ];
 
 const productNav = [
-  { label: "All Products", href: "/admin/products", icon: "inventory_2" },
   { label: "Categories", href: "/admin/categories", icon: "category" },
+  { label: "All Products", href: "/admin/products", icon: "inventory_2" },
 ];
 
 // Supporting tools — kept out of the five main areas.
