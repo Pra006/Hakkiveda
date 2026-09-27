@@ -32,7 +32,7 @@ export async function POST(request) {
     const otp = generateOtp();
     const hashedOtp = await hashOtp(otp);
 
-    await prisma.otp.create({
+    const created = await prisma.otp.create({
       data: {
         email: emailLower,
         hashedOtp,
@@ -48,9 +48,11 @@ export async function POST(request) {
     });
 
     if (!emailResult.success) {
+      await prisma.otp.delete({ where: { id: created.id } }).catch(() => {});
+      console.error("[OTP_RESEND_EMAIL_FAILED]", { email: emailLower, purpose });
       return NextResponse.json(
-        { error: emailResult.error },
-        { status: 500 }
+        { error: emailResult.error || "Failed to send verification code. Please try again." },
+        { status: 502 }
       );
     }
 

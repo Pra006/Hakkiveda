@@ -50,7 +50,7 @@ export async function POST(request) {
     const otp = generateOtp();
     const hashedOtp = await hashOtp(otp);
 
-    await prisma.otp.create({
+    const created = await prisma.otp.create({
       data: {
         email: emailLower,
         hashedOtp,
@@ -66,10 +66,13 @@ export async function POST(request) {
     });
 
     if (!emailResult.success) {
-      console.error("[OTP_EMAIL_FAILED]", emailResult.error);
+      // A stored OTP the user cannot see would let them keep hitting /verify
+      // with guesses against a code that was never delivered. Roll it back.
+      await prisma.otp.delete({ where: { id: created.id } }).catch(() => {});
+      console.error("[OTP_EMAIL_FAILED]", { email: emailLower, purpose });
       return NextResponse.json(
-        { error: "Failed to send verification code. Please try again." },
-        { status: 500 }
+        { error: emailResult.error || "Failed to send verification code. Please try again." },
+        { status: 502 }
       );
     }
 
