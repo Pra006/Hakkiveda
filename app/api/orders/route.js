@@ -238,6 +238,9 @@ export async function POST(req) {
       }
 
       return created;
+    }, {
+      maxWait: 10_000,
+      timeout: 20_000,
     });
 
     return jsonResponse({ order }, 201);
