@@ -60,6 +60,7 @@ export default function ShopBrowser({ products, categories }) {
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
   const [view, setView] = useState("grid");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const toggle = (set, value) => {
     const next = new Set(set);
@@ -162,15 +163,40 @@ export default function ShopBrowser({ products, categories }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">
       {/* FILTERS */}
-      <aside className="lg:sticky lg:top-24 self-start bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 h-fit">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-headline text-lg text-forest-deep">Filters</h2>
-          <button onClick={reset} className="text-xs text-antique-gold font-semibold hover:underline">
+      <aside className="lg:sticky lg:top-24 self-start bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-4 lg:p-5 h-fit">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((v) => !v)}
+            aria-expanded={filtersOpen}
+            aria-controls="shop-filters-body"
+            className="flex-1 flex items-center justify-between lg:pointer-events-none lg:cursor-default"
+          >
+            <span className="flex items-center gap-2">
+              <Icon name="tune" size={18} className="text-forest-base lg:hidden" />
+              <h2 className="font-headline text-lg text-forest-deep">Filters</h2>
+              {chips.length > 0 && (
+                <span className="lg:hidden inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-forest-base text-antique-gold text-[10px] font-bold">
+                  {chips.length}
+                </span>
+              )}
+            </span>
+            <Icon
+              name="expand_more"
+              size={22}
+              className={`lg:hidden text-forest-deep transition-transform ${filtersOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          <button
+            onClick={reset}
+            className="text-xs text-antique-gold font-semibold hover:underline whitespace-nowrap"
+          >
             Reset
           </button>
         </div>
 
-        <div className="mt-2 mb-2">
+        <div id="shop-filters-body" className={`${filtersOpen ? "block" : "hidden"} lg:block`}>
+        <div className="mt-3 mb-2">
           <div className="flex items-center gap-2 bg-surface-container-low border border-outline-variant rounded px-3 py-2">
             <Icon name="search" size={16} className="text-forest-base" />
             <input
@@ -254,6 +280,7 @@ export default function ShopBrowser({ products, categories }) {
             onChange={() => onFilterChange(setOnSale)(!onSale)}
           />
         </FilterGroup>
+        </div>
       </aside>
 
       {/* MAIN */}
