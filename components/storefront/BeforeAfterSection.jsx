@@ -93,7 +93,7 @@ function ImageSlider({ before, after, durationLabel, combined }) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-[4/5] sm:aspect-[3/4] rounded-2xl overflow-hidden cursor-col-resize select-none bg-slate-200"
+      className="relative w-full max-w-full aspect-[4/5] sm:aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden cursor-col-resize select-none bg-slate-200 touch-pan-y"
       onMouseDown={handleDown}
       onTouchStart={handleDown}
     >
@@ -113,7 +113,7 @@ function ImageSlider({ before, after, durationLabel, combined }) {
           alt="Before"
           className="absolute inset-0 h-full object-cover"
           style={{
-            width: width || "100%",
+            width: width > 0 ? `${width}px` : "100%",
             maxWidth: "none",
             ...(combined ? { objectPosition: "left center" } : {}),
           }}
@@ -146,7 +146,7 @@ export default function BeforeAfterSection() {
   const t = TRANSFORMATIONS[active];
 
   return (
-    <section className="w-full py-16 lg:py-20 bg-ivory-canvas/60 relative overflow-hidden">
+    <section className="w-full py-12 sm:py-16 lg:py-20 bg-ivory-canvas/60 relative overflow-hidden">
       {/* Decorative leaves */}
       <div className="absolute top-16 -left-4 text-herbal-jade/15 rotate-12 pointer-events-none hidden lg:block">
         <Icon name="eco" size={80} />
@@ -155,14 +155,14 @@ export default function BeforeAfterSection() {
         <Icon name="spa" size={80} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12">
         {/* Header */}
-        <div className="text-center mb-10 lg:mb-14">
+        <div className="text-center mb-8 sm:mb-10 lg:mb-14">
           <div className="inline-flex items-center gap-2 text-antique-gold text-xs font-bold uppercase tracking-[0.2em] mb-3">
             <Icon name="auto_awesome" size={16} />
             Real Verified Transformations
           </div>
-          <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl text-forest-deep leading-tight">
+          <h2 className="font-headline text-2xl sm:text-4xl lg:text-5xl text-forest-deep leading-tight">
             Before &amp; After Results
           </h2>
           <p className="mt-3 text-sm sm:text-base text-on-surface-variant max-w-xl mx-auto">
@@ -171,10 +171,10 @@ export default function BeforeAfterSection() {
         </div>
 
         {/* Card */}
-        <div className="max-w-5xl mx-auto bg-surface-container-lowest border border-outline-variant/60 rounded-3xl shadow-lg overflow-hidden">
-          <div className="grid lg:grid-cols-2">
+        <div className="w-full max-w-5xl mx-auto bg-surface-container-lowest border border-outline-variant/60 rounded-2xl sm:rounded-3xl shadow-lg overflow-hidden">
+          <div className="grid lg:grid-cols-2 min-w-0">
             {/* Image slider */}
-            <div className="p-4 sm:p-6">
+            <div className="p-3 sm:p-6 min-w-0">
               <ImageSlider before={t.before} after={t.after} durationLabel={`${t.duration.replace(" Days", "")}D`} combined={t.combined} />
               <p className="text-xs text-on-surface-variant mt-2 text-center italic">
                 *Drag handle to inspect follicle density
@@ -182,7 +182,7 @@ export default function BeforeAfterSection() {
             </div>
 
             {/* Details */}
-            <div className="p-6 sm:p-8 lg:py-10 flex flex-col justify-center">
+            <div className="p-5 sm:p-8 lg:py-10 flex flex-col justify-center min-w-0">
               <div className="flex items-center gap-3 flex-wrap mb-4">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-antique-gold/15 border border-antique-gold/40 text-xs font-bold uppercase tracking-wider text-antique-gold">
                   <Icon name="calendar_today" size={14} />
