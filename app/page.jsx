@@ -97,18 +97,16 @@ export default async function HomePage() {
         </Section>
       )}
       {/* VENDORS */}
-      <Section className="py-16 bg-surface-container-low -mx-6 lg:-mx-12 px-6 lg:px-12 rounded-none">
-        <div className="max-w-7xl mx-auto">
-          <SectionHeader
-            eyebrow="Meet the Makers"
-            title="Verified B2B businesses, real stories."
-            description="Every product on Hakkiveda carries the name of its maker. Read their story before you buy."
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {vendors.map((v) => (
-              <VendorCard key={v.slug} vendor={v} />
-            ))}
-          </div>
+      <Section className="py-16 bg-surface-container-low">
+        <SectionHeader
+          eyebrow="Meet the Makers"
+          title="Verified B2B businesses, real stories."
+          description="Every product on Hakkiveda carries the name of its maker. Read their story before you buy."
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {vendors.map((v) => (
+            <VendorCard key={v.slug} vendor={v} />
+          ))}
         </div>
       </Section>
 
