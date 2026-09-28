@@ -24,21 +24,21 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 w-full z-40 bg-surface/95 backdrop-blur-md border-b border-forest-base/5 shadow-[0_2px_12px_rgba(15,38,24,0.04)]">
-        <div className="h-20 max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between gap-6">
+        <div className="h-20 max-w-7xl mx-auto px-3 sm:px-6 lg:px-12 flex items-center justify-between gap-2 sm:gap-6">
           {/* Logo */}
-          <div className="flex items-center gap-3.5 shrink-0">
-            <button className="lg:hidden text-forest-deep -ml-2 p-2" onClick={() => setMenuOpen(true)} aria-label="Menu">
+          <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1 lg:flex-none">
+            <button className="lg:hidden text-forest-deep -ml-1 p-2 shrink-0" onClick={() => setMenuOpen(true)} aria-label="Menu">
               <Icon name="menu" size={24} />
             </button>
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="h-10 w-10 rounded-md border border-antique-gold/40 bg-forest-base flex items-center justify-center shadow-sm">
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 group min-w-0">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-md border border-antique-gold/40 bg-forest-base flex items-center justify-center shadow-sm shrink-0">
                 <span className="font-headline text-antique-gold text-lg font-bold">आ</span>
               </div>
-              <div className="flex flex-col leading-none">
-                <span className="font-headline text-[22px] font-semibold text-forest-deep tracking-tight group-hover:text-forest-base">
+              <div className="flex flex-col leading-none min-w-0">
+                <span className="font-headline text-lg sm:text-[22px] font-semibold text-forest-deep tracking-tight group-hover:text-forest-base truncate">
                   Hakkiveda
                 </span>
-                <span className="text-xs text-antique-gold tracking-wider mt-1 font-bold">
+                <span className="hidden sm:inline text-xs text-antique-gold tracking-wider mt-1 font-bold truncate">
                   Nepal Marketplace
                 </span>
               </div>
@@ -59,7 +59,7 @@ export default function Header() {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <button
               aria-label="Search"
               onClick={() => setSearchOpen((v) => !v)}
@@ -173,7 +173,7 @@ export default function Header() {
             <Link
               href="/cart"
               aria-label="Cart"
-              className="relative flex items-center gap-2.5 bg-forest-base text-ivory-canvas px-3.5 py-2 rounded-lg shadow-sm hover:bg-forest-deep"
+              className="relative flex items-center gap-2.5 bg-forest-base text-ivory-canvas px-2.5 sm:px-3.5 py-2 rounded-lg shadow-sm hover:bg-forest-deep shrink-0"
             >
               <Icon name="shopping_bag" size={20} className="text-antique-gold" />
               {cartCount > 0 && (
