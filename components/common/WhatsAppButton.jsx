@@ -24,7 +24,7 @@ export default function WhatsAppButton() {
 
   return (
     <div
-      className="fixed z-[9999] bottom-4 right-4 sm:bottom-6 sm:right-6"
+      className="fixed z-[9999] bottom-20 right-3 lg:bottom-6 lg:right-6"
       style={{ pointerEvents: "none" }}
     >
       <div className="relative" style={{ pointerEvents: "auto" }}>
@@ -45,7 +45,7 @@ export default function WhatsAppButton() {
           onMouseLeave={() => setHovered(false)}
           onFocus={() => setHovered(true)}
           onBlur={() => setHovered(false)}
-          className="group flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg ring-1 ring-black/5 transition-transform duration-200 hover:scale-110 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 active:scale-95 sm:h-16 sm:w-16"
+          className="group relative flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg ring-1 ring-black/5 transition-transform duration-200 hover:scale-110 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 active:scale-95 sm:h-14 sm:w-14 lg:h-16 lg:w-16"
         >
           <span
             aria-hidden="true"
@@ -54,7 +54,7 @@ export default function WhatsAppButton() {
           />
           <svg
             viewBox="0 0 24 24"
-            className="relative h-8 w-8 sm:h-9 sm:w-9"
+            className="relative h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8"
             fill="currentColor"
             aria-hidden="true"
           >
