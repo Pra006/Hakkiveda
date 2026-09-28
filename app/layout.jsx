@@ -2,6 +2,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/providers/AuthProvider";
 import ToastProvider from "@/components/providers/ToastProvider";
+import WhatsAppButton from "@/components/common/WhatsAppButton";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,6 +36,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ToastProvider />
           {children}
+          <WhatsAppButton />
         </AuthProvider>
       </body>
     </html>
