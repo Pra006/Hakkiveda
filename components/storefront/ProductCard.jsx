@@ -9,6 +9,7 @@ import Badge from "@/components/ui/Badge";
 import { discountPercent } from "@/lib/utils";
 import { getVendor } from "@/lib/data";
 import { useCart } from "@/components/providers/CartProvider";
+import { useWishlist } from "@/components/providers/WishlistProvider";
 
 export default function ProductCard({ product, compact = false }) {
   const vendor = getVendor(product.vendor);
@@ -16,6 +17,18 @@ export default function ProductCard({ product, compact = false }) {
   const [added, setAdded] = useState(false);
   const router = useRouter();
   const { addItem, pending, signedIn, sessionStatus } = useCart();
+  const wishlist = useWishlist();
+  const isWished = wishlist.has(product.id);
+
+  async function handleWishlist(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (sessionStatus === "loading" || wishlist.pending) return;
+    const result = await wishlist.toggle(product.id);
+    if (result?.requireLogin) {
+      router.push(`/auth/login?callbackUrl=${encodeURIComponent(`/products/${product.slug}`)}`);
+    }
+  }
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -46,11 +59,16 @@ export default function ProductCard({ product, compact = false }) {
           {product.trending && <Badge tone="forest">Trending</Badge>}
         </div>
         <button
-          aria-label="Add to wishlist"
-          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-surface/95 backdrop-blur flex items-center justify-center text-forest-deep hover:text-terracotta shadow-sm"
-          onClick={(e) => e.preventDefault()}
+          type="button"
+          aria-label={isWished ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={isWished}
+          disabled={wishlist.pending}
+          onClick={handleWishlist}
+          className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-surface/95 backdrop-blur flex items-center justify-center shadow-sm transition-colors disabled:opacity-60 ${
+            isWished ? "text-terracotta" : "text-forest-deep hover:text-terracotta"
+          }`}
         >
-          <Icon name="favorite" size={18} />
+          <Icon name="favorite" size={18} filled={isWished} />
         </button>
       </Link>
 

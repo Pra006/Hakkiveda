@@ -46,6 +46,7 @@ const groups = [
       ["Shipping", "/help/shipping"],
       ["Returns & Refunds", "/help/returns"],
       ["Order Tracking", "/account/orders"],
+      ["Give Feedback", "/account/feedback"],
       ["Contact Us", "/contact"],
     ],
   },

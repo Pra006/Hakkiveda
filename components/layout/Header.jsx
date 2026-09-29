@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Icon from "@/components/ui/Icon";
 import { useCart } from "@/components/providers/CartProvider";
+import { useWishlist } from "@/components/providers/WishlistProvider";
 
 const nav = [
   { label: "Home", href: "/" },
@@ -19,6 +20,7 @@ export default function Header() {
   const [accountOpen, setAccountOpen] = useState(false);
   const { data: session, status } = useSession();
   const { count: cartCount } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const user = session?.user ?? null;
 
   return (
@@ -169,6 +171,11 @@ export default function Header() {
               className="relative hidden sm:inline-flex p-2 text-forest-deep hover:text-antique-gold"
             >
               <Icon name="favorite" size={22} />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">
+                  {wishlistCount}
+                </span>
+              )}
             </Link>
             <Link
               href="/cart"

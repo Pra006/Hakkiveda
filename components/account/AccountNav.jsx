@@ -10,6 +10,7 @@ const links = [
   { label: "My Orders", href: "/account/orders", icon: "receipt_long" },
   { label: "Wishlist", href: "/account/wishlist", icon: "favorite" },
   { label: "Addresses", href: "/account/addresses", icon: "location_on" },
+  { label: "Give Feedback", href: "/account/feedback", icon: "forum" },
   { label: "Settings", href: "/account/settings", icon: "settings" },
 ];
 

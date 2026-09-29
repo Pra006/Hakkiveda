@@ -16,6 +16,7 @@ const mainNav = [
 const customerNav = [
   { label: "Customers", href: "/admin/customers", icon: "people" },
   { label: "Reviews", href: "/admin/reviews", icon: "reviews" },
+  { label: "Feedback", href: "/admin/feedback", icon: "forum" },
 ];
 
 const ordersNav = [

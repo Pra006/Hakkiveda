@@ -6,6 +6,7 @@ import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import { formatNPR } from "@/lib/utils";
 import { useCart } from "@/components/providers/CartProvider";
+import { useWishlist } from "@/components/providers/WishlistProvider";
 import { toast } from "react-toastify";
 
 export default function VariantAndCart({ product }) {
@@ -35,6 +36,14 @@ export default function VariantAndCart({ product }) {
 
   const router = useRouter();
   const { addItem, pending, signedIn, sessionStatus, error } = useCart();
+  const wishlist = useWishlist();
+  const isWished = wishlist.has(product.id);
+
+  async function handleWishlist() {
+    if (sessionStatus === "loading" || wishlist.pending) return;
+    const result = await wishlist.toggle(product.id);
+    if (result?.requireLogin) requireLogin();
+  }
 
   function requireLogin() {
     router.push(`/auth/login?callbackUrl=${encodeURIComponent(`/products/${product.slug}`)}`);
@@ -149,10 +158,18 @@ export default function VariantAndCart({ product }) {
           Buy Now
         </Button>
         <button
-          aria-label="Add to wishlist"
-          className="w-12 h-12 rounded border border-outline-variant flex items-center justify-center text-forest-deep hover:text-terracotta hover:border-terracotta"
+          type="button"
+          aria-label={isWished ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={isWished}
+          disabled={wishlist.pending}
+          onClick={handleWishlist}
+          className={`w-12 h-12 rounded border flex items-center justify-center transition-colors disabled:opacity-60 ${
+            isWished
+              ? "text-terracotta border-terracotta"
+              : "text-forest-deep border-outline-variant hover:text-terracotta hover:border-terracotta"
+          }`}
         >
-          <Icon name="favorite" size={20} />
+          <Icon name="favorite" size={20} filled={isWished} />
         </button>
       </div>
 

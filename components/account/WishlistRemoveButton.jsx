@@ -4,23 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import { toast } from "react-toastify";
+import { useWishlist } from "@/components/providers/WishlistProvider";
 
 export default function WishlistRemoveButton({ productId }) {
   const router = useRouter();
+  const wishlist = useWishlist();
   const [loading, setLoading] = useState(false);
 
   async function handleRemove() {
     setLoading(true);
     try {
-      await fetch("/api/account/wishlist", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId }),
-      });
+      const result = await wishlist.toggle(productId);
+      if (result?.error) throw new Error();
       router.refresh();
-      toast.success("Removed from wishlist");
     } catch {
       toast.error("Could not remove from wishlist");
+    } finally {
       setLoading(false);
     }
   }

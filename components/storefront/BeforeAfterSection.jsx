@@ -93,7 +93,7 @@ function ImageSlider({ before, after, durationLabel, combined }) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-full aspect-[4/5] sm:aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden cursor-col-resize select-none bg-slate-200 touch-pan-y"
+      className="relative block w-full max-w-full aspect-square sm:aspect-[4/5] lg:aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden cursor-col-resize select-none bg-slate-200 touch-pan-y"
       onMouseDown={handleDown}
       onTouchStart={handleDown}
     >
@@ -146,7 +146,7 @@ export default function BeforeAfterSection() {
   const t = TRANSFORMATIONS[active];
 
   return (
-    <section className="w-full py-12 sm:py-16 lg:py-20 bg-ivory-canvas/60 relative overflow-hidden">
+    <section className="w-full max-w-full py-12 sm:py-16 lg:py-20 bg-ivory-canvas/60 relative overflow-x-clip">
       {/* Decorative leaves */}
       <div className="absolute top-16 -left-4 text-herbal-jade/15 rotate-12 pointer-events-none hidden lg:block">
         <Icon name="eco" size={80} />

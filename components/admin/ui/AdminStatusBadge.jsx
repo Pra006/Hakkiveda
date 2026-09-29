@@ -45,6 +45,10 @@ const statusColors = {
   EXPIRED: "bg-slate-50 text-slate-500 border-slate-200",
   SUBMITTED: "bg-blue-50 text-blue-700 border-blue-200",
 
+  // Feedback
+  NEW: "bg-blue-50 text-blue-700 border-blue-200",
+  READ: "bg-slate-50 text-slate-600 border-slate-200",
+
   // Admin roles
   ADMIN: "bg-purple-50 text-purple-700 border-purple-200",
 
