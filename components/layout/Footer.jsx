@@ -99,8 +99,8 @@ export default function Footer() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-md border border-antique-gold/40 bg-antique-gold/10 flex items-center justify-center">
-                <span className="font-headline text-antique-gold text-base font-bold">आ</span>
+              <div className="h-12 w-12 rounded-md border border-antique-gold/40 bg-ivory-canvas flex items-center justify-center p-1 shrink-0">
+                <img src="/hakkiveda-logo.png" alt="Hakkiveda" className="h-full w-full object-contain" />
               </div>
               <span className="font-headline text-lg">Hakkiveda</span>
             </div>

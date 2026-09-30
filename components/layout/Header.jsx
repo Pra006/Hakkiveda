@@ -33,9 +33,11 @@ export default function Header() {
               <Icon name="menu" size={24} />
             </button>
             <Link href="/" className="flex items-center gap-2 sm:gap-3 group min-w-0">
-              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-md border border-antique-gold/40 bg-forest-base flex items-center justify-center shadow-sm shrink-0">
-                <span className="font-headline text-antique-gold text-lg font-bold">आ</span>
-              </div>
+              <img
+                src="/hakkiveda-logo.png"
+                alt="Hakkiveda"
+                className="h-12 w-12 sm:h-14 sm:w-14 object-contain shrink-0"
+              />
               <div className="flex flex-col leading-none min-w-0">
                 <span className="font-headline text-lg sm:text-[22px] font-semibold text-forest-deep tracking-tight group-hover:text-forest-base truncate">
                   Hakkiveda
