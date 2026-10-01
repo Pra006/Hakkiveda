@@ -17,30 +17,6 @@ const TRANSFORMATIONS = [
     name: "Suresh T.",
     badge: "Verified Buyer",
   },
-  {
-    before: "https://images.unsplash.com/photo-1653055645127-54ec96add7b5?auto=format&fit=crop&w=800&q=80",
-    after: "https://images.unsplash.com/photo-1598096969068-7f52cac10c83?auto=format&fit=crop&w=800&q=80",
-    duration: "60 Days",
-    location: "Biratnagar, Nepal",
-    title: "Temple Regrowth in Just 60 Days",
-    concern: "Receding Hairline & Weak Edges",
-    quote:
-      "My temples had been bare since my twenties. After two months with the Bhringraj scalp treatment, baby hairs appeared along the entire hairline — even my barber noticed the difference.",
-    name: "Ankit R.",
-    badge: "Verified Buyer",
-  },
-  {
-    before: "https://images.unsplash.com/photo-1761125135357-99cbe52a6271?auto=format&fit=crop&w=800&q=80",
-    after: "https://images.unsplash.com/photo-1761124885021-ef7e96a8d595?auto=format&fit=crop&w=800&q=80",
-    duration: "120 Days",
-    location: "Pokhara, Nepal",
-    title: "Full Volume Recovery in 120 Days",
-    concern: "Overall Thinning & Excessive Hair Fall",
-    quote:
-      "I was losing handfuls every wash. Four months of the herbal oil and shampoo combo later, the shedding stopped and my hair feels twice as thick. I wish I had started sooner.",
-    name: "Meera D.",
-    badge: "Verified Buyer",
-  },
 ];
 
 function ImageSlider({ before, after, durationLabel, combined }) {
