@@ -10,9 +10,10 @@ import Icon from "@/components/ui/Icon";
 
 import BeforeAfterSection from "@/components/storefront/BeforeAfterSection";
 import SaleBanner from "@/components/storefront/SaleBanner";
+import VideoRituals from "@/components/storefront/VideoRituals";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
-import { listStoreCategories, listFeaturedProducts, listNewArrivalProducts, getActivePromotion } from "@/lib/catalog";
+import { listStoreCategories, listFeaturedProducts, listNewArrivalProducts, getActivePromotion, listActiveVideoRituals } from "@/lib/catalog";
 import {
   vendors,
   trendingProducts,
@@ -22,11 +23,12 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [categories, featured, newArrivals, activePromotion] = await Promise.all([
+  const [categories, featured, newArrivals, activePromotion, videoRituals] = await Promise.all([
     listStoreCategories(),
     listFeaturedProducts(),
     listNewArrivalProducts(),
     getActivePromotion(),
+    listActiveVideoRituals(),
   ]);
   const trending = trendingProducts();
 
@@ -109,6 +111,9 @@ export default async function HomePage() {
           ))}
         </div>
       </Section>
+
+      {/* VIDEO RITUALS */}
+      {videoRituals.length > 0 && <VideoRituals videos={videoRituals} />}
 
       {/* NEW ARRIVALS — only shown when admin has marked products as new arrivals */}
       {newArrivals.length > 0 && (

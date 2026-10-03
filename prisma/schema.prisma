@@ -37,7 +37,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 enum CustomerOrderStatus {
   PENDING
   CONFIRMED
@@ -107,12 +106,12 @@ model Otp {
 }
 
 model PasswordResetToken {
-  id             String   @id @default(cuid())
-  userId         String
-  hashedToken    String
-  expiresAt      DateTime
-  usedAt         DateTime?
-  createdAt      DateTime @default(now())
+  id          String    @id @default(cuid())
+  userId      String
+  hashedToken String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -298,33 +297,33 @@ model User {
 // ─── Product (shared catalog) ───────────────────────────────────────────────
 
 model Product {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  sku         String?  @unique
-  description String?  @db.Text
-  categoryId  String?
-  brand       String?
-  retailPrice Float
-  compareAt   Float?
-  images      String[]
-  stock       Int      @default(0)
-  moq             Int      @default(1)
-  b2bMinOrderQty  Int?
-  isB2B           Boolean  @default(false)
-  isActive    Boolean  @default(true)
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  sku            String?  @unique
+  description    String?  @db.Text
+  categoryId     String?
+  brand          String?
+  retailPrice    Float
+  compareAt      Float?
+  images         String[]
+  stock          Int      @default(0)
+  moq            Int      @default(1)
+  b2bMinOrderQty Int?
+  isB2B          Boolean  @default(false)
+  isActive       Boolean  @default(true)
 
   // Admin rating override
-  adminRating          Float?   
-  adminReviewCount     Int?     
-  isAdminRatingEnabled Boolean  @default(false)
+  adminRating          Float?
+  adminReviewCount     Int?
+  isAdminRatingEnabled Boolean @default(false)
 
   // Featured product controls
-  isFeatured    Boolean  @default(false)
+  isFeatured    Boolean @default(false)
   featuredOrder Int?
 
   // New arrival flag — toggled by the admin in the product form
-  isNewArrival  Boolean  @default(false)
+  isNewArrival Boolean @default(false)
 
   category Category? @relation(fields: [categoryId], references: [id])
 
@@ -364,12 +363,12 @@ model Product {
 // variants, price and stock are held per variant; Product.stock is kept in sync
 // as the sum so existing catalog filters and sorts stay correct.
 model ProductVariant {
-  id        String   @id @default(cuid())
-  productId String
-  name      String
-  sku       String?  @unique
-  price     Float
-  compareAt Float?
+  id             String   @id @default(cuid())
+  productId      String
+  name           String
+  sku            String?  @unique
+  price          Float
+  compareAt      Float?
   stock          Int      @default(0)
   b2bMinOrderQty Int?
   images         String[]
@@ -718,29 +717,29 @@ model B2BApplication {
   preferredCommunication B2BCommunicationChannel @default(EMAIL)
 
   // Identity verification (B2B registration flow)
-  citizenshipNumber  String?
+  citizenshipNumber   String?
   citizenshipFrontUrl String?
   citizenshipBackUrl  String?
-  identityStatus     VerificationStatus @default(PENDING)
-  businessInfoStatus VerificationStatus @default(PENDING)
+  identityStatus      VerificationStatus @default(PENDING)
+  businessInfoStatus  VerificationStatus @default(PENDING)
 
   // Business address (B2B registration flow)
-  storeName      String?
-  businessRegNo  String?
-  panVatNo       String?
-  businessPhone  String?
-  province       String?
-  district       String?
-  city           String?
-  streetAddress  String?
-  postalCode     String?
+  storeName     String?
+  businessRegNo String?
+  panVatNo      String?
+  businessPhone String?
+  province      String?
+  district      String?
+  city          String?
+  streetAddress String?
+  postalCode    String?
 
   // Store info (B2B registration flow)
-  storeDescription  String?   @db.Text
+  storeDescription  String?  @db.Text
   productCategories String[]
 
   // Agreement
-  termsAcceptedAt  DateTime?
+  termsAcceptedAt   DateTime?
   privacyAcceptedAt DateTime?
 
   // Review
@@ -749,17 +748,17 @@ model B2BApplication {
   internalNotes   String?   @db.Text
 
   // Admin actions
-  moreInfoMessage      String?   @db.Text
-  moreInfoRequestedAt  DateTime?
-  approvedAt           DateTime?
-  approvedById         String?
-  rejectedAt           DateTime?
-  rejectedById         String?
-  suspendedReason      String?   @db.Text
-  suspendedAt          DateTime?
-  suspendedById        String?
-  reinstatedAt         DateTime?
-  reinstatedById       String?
+  moreInfoMessage     String?   @db.Text
+  moreInfoRequestedAt DateTime?
+  approvedAt          DateTime?
+  approvedById        String?
+  rejectedAt          DateTime?
+  rejectedById        String?
+  suspendedReason     String?   @db.Text
+  suspendedAt         DateTime?
+  suspendedById       String?
+  reinstatedAt        DateTime?
+  reinstatedById      String?
 
   // Verification tracking
   identityVerifiedAt   DateTime?
@@ -1361,7 +1360,7 @@ model ProductReview {
   id         String       @id @default(cuid())
   productId  String
   customerId String
-  rating     Int          // 1–5
+  rating     Int // 1–5
   title      String?
   body       String?      @db.Text
   status     ReviewStatus @default(PENDING)
@@ -1402,12 +1401,12 @@ enum FeedbackStatus {
 }
 
 model Feedback {
-  id        String           @id @default(cuid())
-  userId    String
-  rating    Int              // 1–5
-  message   String           @db.Text
-  category  FeedbackCategory
-  status    FeedbackStatus   @default(NEW)
+  id       String           @id @default(cuid())
+  userId   String
+  rating   Int // 1–5
+  message  String           @db.Text
+  category FeedbackCategory
+  status   FeedbackStatus   @default(NEW)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1432,15 +1431,15 @@ model HeroBanner {
   imageUrl     String
   buttonText   String?
   buttonLink   String?
-  badgeIcon    String?   // Material Symbols icon name
-  badgeLabel   String?   // eyebrow / tag text
+  badgeIcon    String? // Material Symbols icon name
+  badgeLabel   String? // eyebrow / tag text
   displayOrder Int       @default(0)
   isActive     Boolean   @default(true)
   startDate    DateTime?
   endDate      DateTime?
 
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isActive, displayOrder])
   @@index([startDate, endDate])
@@ -1465,7 +1464,7 @@ model BlogPost {
   content       String?        @db.Text
   category      String?
   author        String?
-  tags          String[]       // PostgreSQL string array
+  tags          String[] // PostgreSQL string array
   status        BlogPostStatus @default(DRAFT)
   publishedAt   DateTime?
 
@@ -1483,23 +1482,39 @@ model BlogPost {
 // VIDEO RITUALS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+model VideoRitual {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?  @db.Text
+  videoUrl     String
+  thumbnailUrl String?
+  category     String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive, displayOrder])
+  @@map("video_rituals")
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SALE PROMOTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 model SalePromotion {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
-  subtitle    String?   @db.Text
+  subtitle    String?  @db.Text
   bannerImage String?
-  isActive    Boolean   @default(false)
+  isActive    Boolean  @default(false)
   startDate   DateTime
   endDate     DateTime
 
-  products    SalePromotionProduct[]
+  products SalePromotionProduct[]
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isActive])
   @@index([startDate, endDate])

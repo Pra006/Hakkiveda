@@ -98,10 +98,10 @@ function ImageSlider({ before, after, durationLabel, combined }) {
       </div>
 
       {/* Labels */}
-      <span className="absolute top-4 left-4 bg-forest-deep text-ivory-canvas text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-md z-10">
+      <span className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-forest-deep text-ivory-canvas text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg shadow-md z-10">
         Before
       </span>
-      <span className="absolute top-4 right-4 bg-antique-gold text-forest-deep text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-md z-10">
+      <span className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-antique-gold text-forest-deep text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg shadow-md z-10">
         After ({durationLabel})
       </span>
 
@@ -158,38 +158,38 @@ export default function BeforeAfterSection() {
             </div>
 
             {/* Details */}
-            <div className="p-5 sm:p-8 lg:py-10 flex flex-col justify-center min-w-0">
-              <div className="flex items-center gap-3 flex-wrap mb-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-antique-gold/15 border border-antique-gold/40 text-xs font-bold uppercase tracking-wider text-antique-gold">
-                  <Icon name="calendar_today" size={14} />
+            <div className="p-4 sm:p-8 lg:py-10 flex flex-col justify-center min-w-0 overflow-hidden">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap mb-3 sm:mb-4">
+                <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-antique-gold/15 border border-antique-gold/40 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-antique-gold">
+                  <Icon name="calendar_today" size={12} />
                   {t.duration} Transformation
                 </span>
-                <span className="inline-flex items-center gap-1 text-sm text-on-surface-variant">
-                  <Icon name="location_on" size={14} />
+                <span className="inline-flex items-center gap-1 text-xs sm:text-sm text-on-surface-variant">
+                  <Icon name="location_on" size={12} />
                   {t.location}
                 </span>
               </div>
 
-              <h3 className="font-headline text-xl sm:text-2xl text-forest-deep leading-snug mb-3">
+              <h3 className="font-headline text-lg sm:text-2xl text-forest-deep leading-snug mb-2 sm:mb-3">
                 {t.title}
               </h3>
 
-              <p className="text-xs font-bold uppercase tracking-wider text-terracotta mb-4">
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-terracotta mb-3 sm:mb-4">
                 Concern: {t.concern}
               </p>
 
-              <div className="relative pl-5 border-l-2 border-antique-gold/40 mb-6">
-                <Icon name="format_quote" size={24} className="absolute -left-3 -top-1 text-antique-gold/40" />
-                <p className="text-sm sm:text-base text-forest-deep/80 italic leading-relaxed">
+              <div className="relative pl-4 sm:pl-5 border-l-2 border-antique-gold/40 mb-4 sm:mb-6">
+                <Icon name="format_quote" size={20} className="absolute -left-2.5 sm:-left-3 -top-1 text-antique-gold/40" />
+                <p className="text-xs sm:text-base text-forest-deep/80 italic leading-relaxed">
                   &ldquo;{t.quote}&rdquo;
                 </p>
               </div>
 
               <div>
-                <p className="font-headline text-base font-bold text-forest-deep tracking-wide">
+                <p className="font-headline text-sm sm:text-base font-bold text-forest-deep tracking-wide">
                   {t.name}
                 </p>
-                <p className="text-xs text-on-surface-variant">
+                <p className="text-[10px] sm:text-xs text-on-surface-variant">
                   {t.badge} &bull; {t.location}
                 </p>
               </div>
